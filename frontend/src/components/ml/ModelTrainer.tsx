@@ -138,7 +138,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                 <option value="">-- Select Target --</option>
                 {columns.filter(c => c.ml_role !== 'IGNORE').map(col => (
                   <option key={col.id} value={col.column_name}>
-                    {col.display_name || col.column_name} ({col.semantic_type || col.data_type})
+                    {col.display_name || col.column_name} ({col.semantic_type === 'UNKNOWN' ? col.data_type : (col.semantic_type || col.data_type)})
                   </option>
                 ))}
               </select>
@@ -188,7 +188,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                         </span>
                         <div className="flex gap-1 mt-1">
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground tracking-wider uppercase">
-                            {col.semantic_type || col.data_type}
+                            {col.semantic_type === 'UNKNOWN' ? col.data_type : (col.semantic_type || col.data_type)}
                           </span>
                           {isIgnored && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">Ignored</span>}
                           {col.ml_role === 'TARGET' && !isTarget && <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Target</span>}

@@ -70,7 +70,7 @@ async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client
         raise HTTPException(status_code=400, detail=f"Cleaning failed: {str(e)}")
         
     if len(df_clean) == len(df) and request.operation != "FILL_MEAN":
-        return {"message": "No changes made to dataset.", "new_version_id": active_version_id}
+        return {"message": "No changes made to dataset. No matching rows were found to remove.", "new_version_id": active_version_id}
         
     # 3. Create a new version record
     version_res = supabase.table("dataset_versions").insert({
@@ -104,8 +104,18 @@ async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client
         "row_count": len(df_clean)
     }).eq("id", dataset_id).execute()
         
+    rows_deleted = len(df) - len(df_clean)
+    if request.operation == "DROP_DUPLICATES":
+        success_msg = f"Successfully removed {rows_deleted} duplicate row{'s' if rows_deleted != 1 else ''}."
+    elif request.operation == "DROP_NULLS":
+        success_msg = f"Successfully removed {rows_deleted} row{'s' if rows_deleted != 1 else ''} with missing values."
+    elif request.operation == "FILL_MEAN":
+        success_msg = "Successfully filled missing values with the column mean."
+    else:
+        success_msg = "Dataset cleaned successfully."
+        
     return {
-        "message": "Dataset cleaned successfully.",
+        "message": success_msg,
         "new_version_id": new_version_id,
         "row_count": len(df_clean)
     }
