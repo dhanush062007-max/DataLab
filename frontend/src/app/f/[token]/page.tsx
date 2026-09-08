@@ -37,6 +37,20 @@ export default function PublicFormPage() {
         });
         setFormData(initialData);
 
+        // Check if user is already submitted on load for "Only once" forms
+        if (data.rate_limit_settings?.max_per_minute === 0) {
+           const limitKey = `datalab_rate_limit_${token}`;
+           try {
+             const stored = localStorage.getItem(limitKey);
+             if (stored) {
+               const history = JSON.parse(stored);
+               if (history && history.length > 0) {
+                  setSuccess(true);
+               }
+             }
+           } catch(e) {}
+        }
+
       } catch (err: any) {
         setError(err.message || "Failed to load form. It may be inactive or invalid.");
       } finally {
@@ -69,7 +83,8 @@ export default function PublicFormPage() {
     }
 
     // Enforce Rate Limit (Browser-based)
-    const maxPerMinute = schema.rate_limit_settings?.max_per_minute || 5;
+    // We treat maxPerMinute === 0 as "Only Once Ever"
+    const maxPerMinute = schema.rate_limit_settings?.max_per_minute !== undefined ? schema.rate_limit_settings.max_per_minute : 5;
     const limitKey = `datalab_rate_limit_${token}`;
     const now = Date.now();
     let history: number[] = [];
@@ -79,13 +94,21 @@ export default function PublicFormPage() {
       if (stored) history = JSON.parse(stored);
     } catch(e) {}
 
-    // Filter out timestamps older than 60 seconds
-    history = history.filter(t => now - t < 60000);
+    if (maxPerMinute === 0) {
+      if (history.length > 0) {
+        setError("You have already submitted this form. Multiple submissions are not allowed.");
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      // Standard per-minute rate limiting
+      history = history.filter(t => now - t < 60000);
 
-    if (history.length >= maxPerMinute) {
-      setError(`Rate limit exceeded. You can only submit ${maxPerMinute} responses per minute. Please try again shortly.`);
-      setSubmitting(false);
-      return;
+      if (history.length >= maxPerMinute) {
+        setError(`Rate limit exceeded. You can only submit ${maxPerMinute} responses per minute. Please try again shortly.`);
+        setSubmitting(false);
+        return;
+      }
     }
 
     try {
@@ -137,9 +160,11 @@ export default function PublicFormPage() {
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Thank You!</h1>
           <p className="text-muted-foreground mb-6">Your response has been successfully recorded.</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="w-full">
-            Submit Another Response
-          </Button>
+          {schema?.rate_limit_settings?.max_per_minute !== 0 && (
+            <Button onClick={() => window.location.reload()} variant="outline" className="w-full">
+              Submit Another Response
+            </Button>
+          )}
         </div>
       </div>
     );

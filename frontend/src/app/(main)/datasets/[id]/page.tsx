@@ -782,10 +782,11 @@ function DatasetWorkspaceContent() {
                         <div className="text-sm text-muted-foreground">Max submissions per minute from the same device.</div>
                       </div>
                       <select 
-                        value={form.rate_limit_settings?.max_per_minute || 5}
+                        value={form.rate_limit_settings?.max_per_minute ?? 5}
                         onChange={(e) => updateRateLimit(Number(e.target.value))}
                         className="h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
                       >
+                        <option value={0}>Only once (Ever)</option>
                         <option value={1}>1 per minute</option>
                         <option value={5}>5 per minute</option>
                         <option value={10}>10 per minute</option>
