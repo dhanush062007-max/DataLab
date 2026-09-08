@@ -25,9 +25,14 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        
         // 1. Fetch EDA
         const edaRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/eda`, {
-          headers: { 'Authorization': `Bearer ${session?.access_token}` }
+          headers
         });
         if (edaRes.ok) {
           const edaData = await edaRes.json();

@@ -74,14 +74,17 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Authentication required");
+      
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/train`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
+        headers,
         body: JSON.stringify({
           model_name: `Model predicting ${targetColumn}`,
           target_column: targetColumn,
@@ -94,25 +97,27 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
       if (res.status === 429) throw new Error("Model Limit exceeded. Please wait a minute before training again.");
       if (!res.ok) throw new Error(data.detail || data.error || "Training failed");
 
-      // Save to Supabase
-      const payload = { 
-        ...data, 
-        id: crypto.randomUUID(),
-        owner_id: session.user.id 
-      };
+      if (session?.user) {
+        // Save to Supabase
+        const payload = { 
+          ...data, 
+          id: crypto.randomUUID(),
+          owner_id: session.user.id 
+        };
 
-      const { error: insertError } = await supabase
-        .from("ml_experiments")
-        .insert(payload);
-        
-      if (insertError) {
-        console.error("Failed to save experiment to DB:", JSON.stringify(insertError));
-        setError("Database Insert Error: " + (insertError.message || JSON.stringify(insertError)));
-        setResult(data); 
-      } else {
-        alert("Experiment successfully saved to database!");
-        setResult(data);
+        const { error: insertError } = await supabase
+          .from("ml_experiments")
+          .insert(payload);
+          
+        if (insertError) {
+          console.error("Failed to save experiment to DB:", JSON.stringify(insertError));
+          setError("Database Insert Error: " + (insertError.message || JSON.stringify(insertError)));
+        } else {
+          alert("Experiment successfully saved to database!");
+        }
       }
+      
+      setResult(data);
 
     } catch (err: any) {
       setError(err.message);
