@@ -37,7 +37,7 @@ function ExploreDatasetContent() {
     setDownloadingCsv(true);
     try {
       const allData: any[] = [];
-      const chunkSize = 5000;
+      const chunkSize = 1000;
       let currentOffset = 0;
 
       while (true) {
@@ -60,7 +60,7 @@ function ExploreDatasetContent() {
         data.forEach(r => allData.push(r.data));
         
         if (data.length < chunkSize) break;
-        currentOffset += chunkSize;
+        currentOffset += data.length;
       }
 
       if (allData.length > 0) {
