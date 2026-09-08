@@ -176,9 +176,9 @@ export default function PublicFormPage() {
               
               return (
                 <div key={col.id} className="space-y-2">
-                  <label className="text-sm font-semibold flex items-center gap-1">
-                    {col.display_name}
-                    {col.required && <span className="text-red-500">*</span>}
+                  <label className="text-sm font-semibold flex items-start gap-1">
+                    <span className="break-all sm:break-words flex-1 min-w-0 leading-tight pt-0.5">{col.display_name}</span>
+                    {col.required && <span className="text-red-500 shrink-0 pt-0.5">*</span>}
                   </label>
                   
                   {['SHORT_TEXT', 'IDENTIFIER', 'UNKNOWN', 'TEXT'].includes(semType) && (
@@ -267,7 +267,7 @@ export default function PublicFormPage() {
                               }}
                               className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
                             />
-                            <span className="text-sm font-medium">{choice}</span>
+                            <span className="text-sm font-medium break-all sm:break-words flex-1 min-w-0">{choice}</span>
                           </label>
                         );
                       })}
