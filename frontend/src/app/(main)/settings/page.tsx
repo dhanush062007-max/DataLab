@@ -445,7 +445,7 @@ function DangerZone({ user }: { user: any }) {
   const handleDeleteAccount = async () => {
     if (!confirm("Delete your account? You will be signed out and your data will be abandoned.")) return;
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/");
   };
 
   return (
