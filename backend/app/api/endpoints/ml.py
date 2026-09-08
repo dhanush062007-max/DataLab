@@ -210,7 +210,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
     # 9. Save experiment record
     experiment_data = {
         "dataset_id": dataset_id,
-        "name": f"{train_req.algorithm} - {train_req.target_column}",
+        "model_name": f"{train_req.algorithm} - {train_req.target_column}",
         "target_column": train_req.target_column,
         "feature_columns": train_req.feature_columns,
         "algorithm": train_req.algorithm,
