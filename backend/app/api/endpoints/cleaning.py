@@ -12,7 +12,7 @@ class CleanRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 @router.post("/{dataset_id}/clean")
-async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client = Depends(get_supabase_client)):
+def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch current dataset
     d_res = supabase.table("datasets").select("active_version_id", "row_count").eq("id", dataset_id).single().execute()
     active_version_id = d_res.data.get("active_version_id")

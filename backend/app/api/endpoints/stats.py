@@ -50,8 +50,8 @@ def get_interpretation(p_value: float, test_type: str, var_a: str, var_b: str = 
     return "Test completed."
 
 @router.post("/{dataset_id}/stats/run")
-@limiter.limit("10/minute")
-async def run_statistical_test(request: Request, dataset_id: str, stats_req: StatsRequest, supabase: Client = Depends(get_supabase_client)):
+@limiter.limit("5/minute")
+def run_statistical_test(request: Request, dataset_id: str, stats_req: StatsRequest, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch active version
     d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
     active_version_id = d_res.data.get("active_version_id") if d_res.data else None
@@ -213,7 +213,7 @@ async def run_statistical_test(request: Request, dataset_id: str, stats_req: Sta
         raise HTTPException(status_code=400, detail=f"Statistical Test failed: {str(e)}. Please check your variable selections and data types.")
 
 @router.get("/{dataset_id}/stats")
-async def get_stats(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+def get_stats(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
     try:
         res = supabase.table("statistical_tests").select("*").eq("dataset_id", dataset_id).order("created_at", desc=True).execute()
         return res.data

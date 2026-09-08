@@ -39,7 +39,7 @@ class TrainRequest(BaseModel):
 
 @router.post("/{dataset_id}/train")
 @limiter.limit("5/minute")
-async def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supabase: Client = Depends(get_supabase_client)):
+def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supabase: Client = Depends(get_supabase_client)):
     try:
         # 1. Fetch active version
         d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
@@ -203,7 +203,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
         raise HTTPException(status_code=400, detail=f"Model training failed: {str(e)}.")
 
 @router.get("/{dataset_id}/models")
-async def get_models(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+def get_models(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
     try:
         res = supabase.table("ml_experiments").select("*").eq("dataset_id", dataset_id).order("created_at", desc=True).execute()
         return res.data

@@ -7,7 +7,7 @@ import json
 router = APIRouter()
 
 @router.get("/{dataset_id}/eda")
-async def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch Column Semantic Types
     cols_resp = supabase.table("dataset_columns").select("column_name, semantic_type, display_name, data_type").eq("dataset_id", dataset_id).execute()
     if not cols_resp.data:
@@ -169,7 +169,7 @@ async def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depe
     }
 
 @router.get("/{dataset_id}/debug")
-async def debug_records(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+def debug_records(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
     d_res = supabase.table("datasets").select("*").eq("id", dataset_id).execute()
     r_res = supabase.table("dataset_records").select("id").eq("dataset_id", dataset_id).execute()
     return {

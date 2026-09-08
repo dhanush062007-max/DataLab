@@ -16,7 +16,7 @@ class VisualizationRequest(BaseModel):
     aggregation: str = "NONE" # SUM, MEAN, COUNT, MIN, MAX, NONE
 
 @router.post("/{dataset_id}/visualize")
-async def generate_visualization(dataset_id: str, request: VisualizationRequest, supabase: Client = Depends(get_supabase_client)):
+def generate_visualization(dataset_id: str, request: VisualizationRequest, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch active version
     d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
     active_version_id = d_res.data.get("active_version_id") if d_res.data else None
