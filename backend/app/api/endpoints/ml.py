@@ -23,7 +23,7 @@ except ImportError:
 
 router = APIRouter()
 
-from app.main import limiter
+from app.core.rate_limit import limiter
 class TrainRequest(BaseModel):
     model_name: str
     target_column: str

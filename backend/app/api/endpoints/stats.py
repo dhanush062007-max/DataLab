@@ -12,7 +12,7 @@ except ImportError:
     pass
 
 router = APIRouter()
-from app.main import limiter
+from app.core.rate_limit import limiter
 
 class StatsRequest(BaseModel):
     test_type: str # T_TEST_IND, T_TEST_PAIRED, ANOVA, PEARSON, SPEARMAN, CHI_SQUARE
