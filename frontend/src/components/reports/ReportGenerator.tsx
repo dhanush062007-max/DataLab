@@ -199,7 +199,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                 <tbody className="divide-y divide-gray-100">
                   {edaStats.columns.map((col: any) => (
                     <tr key={col.name} className="hover:bg-gray-50">
-                      <td className="py-2 px-3 font-medium text-gray-900">{col.name}</td>
+                      <td className="py-2 px-3 font-medium text-gray-900 break-all min-w-[120px] max-w-[200px]">{col.name}</td>
                       <td className="py-2 px-3 text-gray-600">{col.type}</td>
                       <td className="py-2 px-3">
                         <span className={col.null_count > 0 ? "text-red-600 font-semibold" : "text-green-600"}>
@@ -232,8 +232,8 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                       p = {test.p_value?.toFixed(4)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold">Variables:</span> {test.variable_a} {test.variable_b ? `& ${test.variable_b}` : ''}
+                  <p className="text-sm text-gray-700 break-words mt-2">
+                    <span className="font-semibold shrink-0">Variables:</span> <span className="break-all">{test.variable_a}</span> {test.variable_b ? <>& <span className="break-all">{test.variable_b}</span></> : ''}
                   </p>
                   <p className="text-sm mt-2 font-medium text-gray-900 bg-white p-2 rounded border border-gray-100">
                     {test.interpretation}
@@ -261,8 +261,8 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                         {isClassification ? 'Classification' : 'Regression'}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 mb-3">
-                      Target: <span className="font-semibold">{model.target_column}</span>
+                    <div className="text-sm text-gray-600 mb-3 flex items-center gap-1 min-w-0">
+                      <span className="shrink-0">Target:</span> <span className="font-semibold truncate">{model.target_column}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       {isClassification ? (
