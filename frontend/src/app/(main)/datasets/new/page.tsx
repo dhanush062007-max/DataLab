@@ -12,6 +12,7 @@ type Column = {
   column_name: string;
   data_type: string;
   required: boolean;
+  options?: string[];
 };
 
 export default function NewDatasetPage() {
@@ -60,7 +61,27 @@ export default function NewDatasetPage() {
   };
 
   const handleColumnChange = (id: string, field: keyof Column, value: any) => {
-    setColumns(columns.map(col => col.id === id ? { ...col, [field]: value } : col));
+    setColumns(columns.map(col => {
+      if (col.id === id) {
+        const updated = { ...col, [field]: value };
+        if (field === "data_type" && (value === "SINGLE_CHOICE" || value === "MULTIPLE_CHOICE") && !updated.options) {
+          updated.options = ["", "", "", ""];
+        }
+        return updated;
+      }
+      return col;
+    }));
+  };
+
+  const handleOptionChange = (id: string, index: number, value: string) => {
+    setColumns(columns.map(col => {
+      if (col.id === id && col.options) {
+        const newOptions = [...col.options];
+        newOptions[index] = value;
+        return { ...col, options: newOptions };
+      }
+      return col;
+    }));
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -123,6 +144,9 @@ export default function NewDatasetPage() {
         display_name: col.column_name,
         data_type: col.data_type,
         required: col.required,
+        validation_rules: col.options && (col.data_type === 'SINGLE_CHOICE' || col.data_type === 'MULTIPLE_CHOICE') 
+          ? { choices: col.options.filter(o => o.trim() !== '') } 
+          : {},
         position: index
       }));
 
@@ -275,8 +299,9 @@ export default function NewDatasetPage() {
                   onDragStart={(e) => handleDragStart(e, idx)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, idx)}
-                  className={`grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-background border border-border p-3 sm:p-2 rounded-lg group transition-all ${draggedColIndex === idx ? 'opacity-40 border-primary border-dashed' : ''}`}
+                  className={`bg-background border border-border p-3 sm:p-2 rounded-lg group transition-all ${draggedColIndex === idx ? 'opacity-40 border-primary border-dashed' : ''}`}
                 >
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                   <div className="col-span-1 flex justify-center text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing hidden sm:flex">
                     <GripVertical className="w-5 h-5 pointer-events-none" />
                   </div>
@@ -303,6 +328,8 @@ export default function NewDatasetPage() {
                       <option value="BOOLEAN">Boolean (True/False)</option>
                       <option value="CATEGORY">Category (Tags)</option>
                       <option value="DATE">Date</option>
+                      <option value="SINGLE_CHOICE">Single Choice</option>
+                      <option value="MULTIPLE_CHOICE">Multiple Choice</option>
                     </select>
                   </div>
                   
@@ -325,6 +352,22 @@ export default function NewDatasetPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+                
+                {/* Options section if type is choice */}
+                {(col.data_type === "SINGLE_CHOICE" || col.data_type === "MULTIPLE_CHOICE") && col.options && (
+                  <div className="mt-3 pl-0 sm:pl-12 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {col.options.map((opt, optIdx) => (
+                      <input
+                        key={optIdx}
+                        value={opt}
+                        onChange={(e) => handleOptionChange(col.id, optIdx, e.target.value)}
+                        placeholder={`Option ${optIdx + 1}`}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                      />
+                    ))}
+                  </div>
+                )}
                 </div>
               ))}
             </div>

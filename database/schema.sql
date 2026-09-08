@@ -44,7 +44,7 @@ CREATE TABLE public.datasets (
 );
 
 -- 3. Dataset Columns Table
-CREATE TYPE column_data_type AS ENUM ('INTEGER', 'DECIMAL', 'TEXT', 'CATEGORY', 'BOOLEAN', 'DATE', 'DATETIME');
+CREATE TYPE column_data_type AS ENUM ('INTEGER', 'DECIMAL', 'TEXT', 'CATEGORY', 'BOOLEAN', 'DATE', 'DATETIME', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE');
 
 CREATE TABLE public.dataset_columns (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
