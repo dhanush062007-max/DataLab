@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Sun, Moon, Bell, Menu, X, FlaskConical, Settings, LogOut } from "lucide-react";
+import { Search, Sun, Moon, Monitor, Bell, Menu, X, FlaskConical, Settings, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export function Header() {
   const [user, setUser] = useState<any>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
   const [showNotification, setShowNotification] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -28,23 +28,29 @@ export function Header() {
     });
     
     // Sync theme
-    const isDark = document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark";
-    if (isDark) {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null;
+    if (savedTheme === "light" || savedTheme === "dark") {
+      setTheme(savedTheme);
+    } else {
+      setTheme("system");
     }
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
+  const changeTheme = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme);
-    // Temporary toggle: does not overwrite global preference in localStorage
+    localStorage.setItem("theme", newTheme);
     if (newTheme === "dark") {
       document.documentElement.classList.add("dark");
-    } else {
+    } else if (newTheme === "light") {
       document.documentElement.classList.remove("dark");
+    } else {
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     }
   };
 
@@ -101,9 +107,17 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3 md:gap-4 ml-auto">
-        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
-          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center bg-muted/50 rounded-full p-1 border border-border">
+          <button onClick={() => changeTheme("light")} className={`p-1.5 rounded-full transition-colors ${theme === 'light' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`} title="Light Mode">
+            <Sun className="w-4 h-4" />
+          </button>
+          <button onClick={() => changeTheme("system")} className={`p-1.5 rounded-full transition-colors ${theme === 'system' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`} title="System Default">
+            <Monitor className="w-4 h-4" />
+          </button>
+          <button onClick={() => changeTheme("dark")} className={`p-1.5 rounded-full transition-colors ${theme === 'dark' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`} title="Dark Mode">
+            <Moon className="w-4 h-4" />
+          </button>
+        </div>
         <button 
           onClick={() => setShowNotification(false)}
           className="p-2 rounded-full hover:bg-muted text-muted-foreground relative transition-colors"
