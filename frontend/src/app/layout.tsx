@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   keywords: ["Data Science", "Machine Learning", "Datasets", "Statistical Testing", "Data Visualization", "DataLab", "Data Analysis"],
   authors: [{ name: "DataLab Researchers" }],
   creator: "DataLab",
+  icons: {
+    icon: "/icon.png?v=2",
+    apple: "/icon.png?v=2",
+  },
   verification: {
     google: "oZselN3LsERDeothB7teAB9IqZI5LoOFXwWtYlWXPZI",
   },
