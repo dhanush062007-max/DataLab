@@ -148,7 +148,7 @@ function DatasetWorkspaceContent() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      worker: true,
+      worker: false,
       complete: async (results) => {
         try {
           if (results.errors.length > 0) {
