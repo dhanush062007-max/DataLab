@@ -144,13 +144,13 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
       <div id="printable-report" className="bg-white text-black print:text-black border border-border rounded-xl p-10 print:p-0 print:border-none shadow-sm print:shadow-none min-h-[800px] mx-auto max-w-5xl">
         
         {/* Report Header */}
-        <div className="border-b-2 border-gray-200 pb-6 mb-8 flex justify-between items-end">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 border-b border-gray-200 pb-6">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 mb-2">DataLab Report</h1>
-            <h2 className="text-2xl font-semibold text-gray-600">{datasetName}</h2>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-1">Data Analysis Report</h1>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-600">{datasetName}</h2>
           </div>
-          <div className="text-right text-sm text-gray-500">
-            <div className="flex items-center justify-end gap-1 mb-1">
+          <div className="text-left sm:text-right text-sm text-gray-500">
+            <div className="flex items-center sm:justify-end gap-1 mb-1">
               <Calendar className="w-4 h-4" /> {new Date().toLocaleDateString()}
             </div>
             <div>Generated automatically via DataLab</div>
@@ -226,9 +226,9 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
             <div className="space-y-4">
               {statsTests.map((test) => (
                 <div key={test.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-gray-900">{test.test_type.replace(/_/g, ' ').toUpperCase()}</h4>
-                    <span className={`text-xs px-2 py-1 rounded-full font-bold ${test.p_value < 0.05 ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <h4 className="font-bold text-gray-900 min-w-0 break-words">{test.test_type.replace(/_/g, ' ').toUpperCase()}</h4>
+                    <span className={`shrink-0 whitespace-nowrap text-xs px-2 py-1 rounded-full font-bold ${test.p_value < 0.05 ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
                       p = {test.p_value?.toFixed(4)}
                     </span>
                   </div>
@@ -255,9 +255,9 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                 const isClassification = model.task_type === "CLASSIFICATION";
                 return (
                   <div key={model.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-bold text-gray-900 truncate" title={model.model_type}>{model.model_type}</span>
-                      <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
+                    <div className="flex justify-between items-start gap-2 mb-3">
+                      <span className="font-bold text-gray-900 truncate min-w-0" title={model.model_type}>{model.model_type}</span>
+                      <span className="shrink-0 whitespace-nowrap text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
                         {isClassification ? 'Classification' : 'Regression'}
                       </span>
                     </div>
