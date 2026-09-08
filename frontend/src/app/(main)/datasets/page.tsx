@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { Database, Plus, Search, MoreVertical, Filter, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function DatasetsPage() {
+function DatasetsContent() {
   const [datasets, setDatasets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -48,92 +49,43 @@ export default function DatasetsPage() {
   }, [datasets, searchQuery, filterType]);
 
   const handleExport = () => {
-    if (filteredDatasets.length === 0) return;
-    
-    // Simple CSV export of the datasets list
-    const headers = ["Dataset Name", "Source Type", "Status", "Row Count", "Created At"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredDatasets.map(ds => [
-        `"${ds.name}"`, 
-        `"${ds.source_type}"`, 
-        `"${ds.status}"`, 
-        ds.row_count || 0, 
-        ds.created_at
-      ].join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Name,Type,Status,Rows,Created\n"
+      + filteredDatasets.map(e => `${e.name},${e.source_type},${e.status},${e.row_count || 0},${new Date(e.created_at).toLocaleDateString()}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
+    link.setAttribute("href", encodedUri);
     link.setAttribute("download", "datasets_export.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the dataset "${name}"? This action cannot be undone and will delete all associated models and reports.`)) return;
-
-    try {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    if (confirm("Are you sure you want to delete this dataset? This cannot be undone.")) {
       const { error } = await supabase.from("datasets").delete().eq("id", id);
-      if (error) throw error;
-      
-      // Update local state to remove the deleted dataset
-      setDatasets(datasets.filter(ds => ds.id !== id));
-    } catch (err: any) {
-      alert(`Failed to delete dataset: ${err.message}`);
+      if (!error) {
+        setDatasets(datasets.filter(ds => ds.id !== id));
+      }
     }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Database className="w-6 h-6 text-primary" />
-            Datasets
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage your connected data sources and collected datasets.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Your Datasets</h1>
+          <p className="text-muted-foreground mt-1">Manage, analyze, and collect data across your organization.</p>
         </div>
         <Link href="/datasets/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Dataset
+          <Button className="rounded-full shadow-sm hover:shadow-md transition-all px-6">
+            <Plus className="w-4 h-4 mr-2" />
+            New Dataset
           </Button>
         </Link>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-4 items-center justify-between bg-muted/20">
-          <div className="relative w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search datasets by name or description..." 
-              className="w-full h-10 pl-9 pr-4 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none">
-              <select 
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full h-10 pl-9 pr-8 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
-              >
-                <option value="all">All Types & Status</option>
-                <option value="CSV">CSV</option>
-                <option value="DB">Database</option>
-                <option value="API">API</option>
-                <option value="READY">Ready</option>
-              </select>
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            </div>
-            
             <Button onClick={handleExport} variant="outline" size="sm" className="flex items-center gap-2 h-10 flex-1 sm:flex-none">
               <Download className="w-4 h-4" />
               Export
@@ -228,5 +180,13 @@ export default function DatasetsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DatasetsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-muted-foreground">Loading datasets...</div>}>
+      <DatasetsContent />
+    </Suspense>
   );
 }
