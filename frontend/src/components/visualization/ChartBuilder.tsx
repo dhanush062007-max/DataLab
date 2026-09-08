@@ -75,7 +75,7 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
     }
   };
 
-  const numericColumns = columns.filter(c => c.data_type === "INTEGER" || c.data_type === "DECIMAL");
+  const numericColumns = columns.filter(c => ['INTEGER', 'DECIMAL'].includes(c.semantic_type || c.data_type));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
