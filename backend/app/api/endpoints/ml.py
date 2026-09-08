@@ -64,7 +64,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
         transformers = []
         feature_names_mapping = {}
         
-        for i, col in enumerate(request.feature_columns):
+        for i, col in enumerate(train_req.feature_columns):
             col_def = col_defs.get(col, {})
             semantic_type = col_def.get("semantic_type", "UNKNOWN")
             encoding = col_def.get("encoding_type", "NONE")
@@ -111,7 +111,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
         preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
                 
         # Encode target if classification
-        is_classification = "CLASSIFIER" in request.algorithm or "LOGISTIC" in request.algorithm
+        is_classification = "CLASSIFIER" in train_req.algorithm or "LOGISTIC" in train_req.algorithm
         if is_classification and (y.dtype == 'object' or y.dtype.name == 'category'):
             le_y = LabelEncoder()
             y = le_y.fit_transform(y.astype(str))
