@@ -42,6 +42,10 @@ function DatasetWorkspaceContent() {
     }
   }, [searchParams]);
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 50;
+
   // CSV Upload State
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -104,23 +108,6 @@ function DatasetWorkspaceContent() {
         setNewRowData(initialData);
       }
 
-      // Fetch sample records based on active version
-      let rQuery = supabase
-        .from("dataset_records")
-        .select("id, data, created_at")
-        .eq("dataset_id", datasetId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-        
-      if (dData.active_version_id) {
-        rQuery = rQuery.eq("version_id", dData.active_version_id);
-      } else {
-        rQuery = rQuery.is("version_id", null);
-      }
-        
-      const { data: rData } = await rQuery;
-      if (rData) setRecords(rData);
-
       // Fetch Form if exists
       const { data: fData } = await supabase
         .from("collection_forms")
@@ -135,6 +122,33 @@ function DatasetWorkspaceContent() {
 
     fetchData();
   }, [datasetId, router]);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      if (!dataset) return;
+      
+      const from = (currentPage - 1) * recordsPerPage;
+      const to = from + recordsPerPage - 1;
+
+      let rQuery = supabase
+        .from("dataset_records")
+        .select("id, data, created_at")
+        .eq("dataset_id", datasetId)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+        
+      if (dataset.active_version_id) {
+        rQuery = rQuery.eq("version_id", dataset.active_version_id);
+      } else {
+        rQuery = rQuery.is("version_id", null);
+      }
+        
+      const { data: rData } = await rQuery;
+      if (rData) setRecords(rData);
+    };
+
+    fetchRecords();
+  }, [dataset, currentPage, datasetId]);
 
   // Handle CSV Upload via PapaParse Web Worker
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -577,9 +591,32 @@ function DatasetWorkspaceContent() {
                   <Grid className="w-5 h-5 text-primary" />
                   Data Explorer
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{records.length} of {dataset.row_count || 0} visible</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                  {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, dataset?.row_count || 0)} of ${dataset?.row_count || 0}` : `0 of ${dataset?.row_count || 0}`}
+                </span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-1 mr-2">
+                  <Button 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                    disabled={currentPage === 1} 
+                    variant="outline" 
+                    size="sm"
+                    className="h-8 px-2"
+                  >
+                    Prev
+                  </Button>
+                  <span className="text-xs font-medium px-2">Page {currentPage}</span>
+                  <Button 
+                    onClick={() => setCurrentPage(prev => prev + 1)} 
+                    disabled={currentPage * recordsPerPage >= (dataset?.row_count || 0)} 
+                    variant="outline" 
+                    size="sm"
+                    className="h-8 px-2"
+                  >
+                    Next
+                  </Button>
+                </div>
                 <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
                   <Download className="w-4 h-4" />
                   Export CSV
