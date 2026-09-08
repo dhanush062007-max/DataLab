@@ -254,7 +254,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
               {mlModels.map((model) => {
                 const isClassification = model.task_type === "CLASSIFICATION";
                 return (
-                  <div key={model.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div key={model.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm min-w-0 flex flex-col">
                     <div className="flex justify-between items-start gap-2 mb-3">
                       <span className="font-bold text-gray-900 truncate min-w-0" title={model.model_type}>{model.model_type}</span>
                       <span className="shrink-0 whitespace-nowrap text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
@@ -267,24 +267,24 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       {isClassification ? (
                         <>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">Accuracy</div>
-                            <div className="font-bold text-gray-900">{(model.metrics.accuracy * 100).toFixed(1)}%</div>
+                          <div className="bg-gray-50 p-2 rounded min-w-0">
+                            <div className="text-gray-500 text-xs truncate">Accuracy</div>
+                            <div className="font-bold text-gray-900 truncate">{(model.metrics.accuracy * 100).toFixed(1)}%</div>
                           </div>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">F1 Score</div>
-                            <div className="font-bold text-gray-900">{(model.metrics.f1_score * 100).toFixed(1)}%</div>
+                          <div className="bg-gray-50 p-2 rounded min-w-0">
+                            <div className="text-gray-500 text-xs truncate">F1 Score</div>
+                            <div className="font-bold text-gray-900 truncate">{(model.metrics.f1_score * 100).toFixed(1)}%</div>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">R² Score</div>
-                            <div className="font-bold text-gray-900">{model.metrics.r2?.toFixed(3)}</div>
+                          <div className="bg-gray-50 p-2 rounded min-w-0">
+                            <div className="text-gray-500 text-xs truncate">R² Score</div>
+                            <div className="font-bold text-gray-900 truncate">{model.metrics.r2?.toFixed(3)}</div>
                           </div>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">RMSE</div>
-                            <div className="font-bold text-gray-900">{model.metrics.rmse?.toFixed(3)}</div>
+                          <div className="bg-gray-50 p-2 rounded min-w-0">
+                            <div className="text-gray-500 text-xs truncate">RMSE</div>
+                            <div className="font-bold text-gray-900 truncate">{model.metrics.rmse?.toFixed(3)}</div>
                           </div>
                         </>
                       )}
