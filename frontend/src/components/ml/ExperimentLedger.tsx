@@ -59,9 +59,9 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
           
           return (
             <div key={exp.id} className="bg-card border border-border rounded-xl p-5 shadow-sm hover:border-primary/50 transition-colors">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-lg truncate pr-4" title={exp.model_name || exp.model_type}>
+              <div className="flex justify-between items-start mb-4 gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-lg truncate" title={exp.model_name || exp.model_type}>
                     {exp.model_name || exp.model_type}
                   </h3>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
