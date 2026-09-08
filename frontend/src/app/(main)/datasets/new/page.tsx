@@ -3,17 +3,38 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Database, FileType, Columns, Plus, Trash2, GripVertical, CheckCircle, Copy, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Database, FileType, Columns, Plus, Trash2, GripVertical, CheckCircle, Copy, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 type Column = {
   id: string;
   column_name: string;
-  data_type: string;
+  data_type: string; // Physical
+  semantic_type: string;
+  ml_role: string;
+  encoding_type: string;
   required: boolean;
   options?: string[];
 };
+
+const SEMANTIC_TYPES = [
+  { value: "UNKNOWN", label: "Auto Detect / Unknown" },
+  { value: "INTEGER", label: "Integer (Numeric)" },
+  { value: "DECIMAL", label: "Decimal / Float" },
+  { value: "BOOLEAN", label: "Boolean (True/False)" },
+  { value: "CATEGORY", label: "Category (Nominal)" },
+  { value: "TAGS", label: "Tags (Multi-label)" },
+  { value: "SINGLE_CHOICE", label: "Single Choice" },
+  { value: "ORDINAL_CHOICE", label: "Ordinal Choice" },
+  { value: "MULTIPLE_CHOICE", label: "Multiple Choice" },
+  { value: "DATE", label: "Date" },
+  { value: "DATETIME", label: "Date & Time" },
+  { value: "SHORT_TEXT", label: "Short Text" },
+  { value: "LONG_TEXT", label: "Long Text (NLP)" },
+  { value: "IDENTIFIER", label: "Identifier (ID/Email)" },
+  { value: "TARGET", label: "Target Variable" }
+];
 
 export default function NewDatasetPage() {
   const router = useRouter();
@@ -32,7 +53,7 @@ export default function NewDatasetPage() {
   
   // Columns
   const [columns, setColumns] = useState<Column[]>([
-    { id: "1", column_name: "id", data_type: "INTEGER", required: true }
+    { id: "1", column_name: "id", data_type: "INTEGER", semantic_type: "IDENTIFIER", ml_role: "IGNORE", encoding_type: "NONE", required: true }
   ]);
   
   // Drag and Drop State
@@ -51,7 +72,7 @@ export default function NewDatasetPage() {
   const handleAddColumn = () => {
     setColumns([
       ...columns,
-      { id: Date.now().toString(), column_name: "", data_type: "TEXT", required: false }
+      { id: Date.now().toString(), column_name: "", data_type: "TEXT", semantic_type: "UNKNOWN", ml_role: "FEATURE", encoding_type: "NONE", required: false }
     ]);
   };
 
@@ -64,8 +85,22 @@ export default function NewDatasetPage() {
     setColumns(columns.map(col => {
       if (col.id === id) {
         const updated = { ...col, [field]: value };
-        if (field === "data_type" && (value === "SINGLE_CHOICE" || value === "MULTIPLE_CHOICE") && !updated.options) {
-          updated.options = ["", "", "", ""];
+        
+        if (field === "semantic_type") {
+          if ((value === "SINGLE_CHOICE" || value === "MULTIPLE_CHOICE" || value === "ORDINAL_CHOICE") && !updated.options) {
+            updated.options = ["", "", "", ""];
+          }
+          
+          if (value === "IDENTIFIER") updated.ml_role = "IGNORE";
+          else if (value === "TARGET") updated.ml_role = "TARGET";
+          else updated.ml_role = "FEATURE";
+          
+          if (["INTEGER", "DECIMAL", "BOOLEAN", "DATE", "DATETIME"].includes(value)) updated.encoding_type = "NUMERIC_SCALED";
+          else if (["CATEGORY", "SINGLE_CHOICE"].includes(value)) updated.encoding_type = "ONE_HOT";
+          else if (["MULTIPLE_CHOICE", "TAGS"].includes(value)) updated.encoding_type = "MULTI_HOT";
+          else if (value === "ORDINAL_CHOICE") updated.encoding_type = "ORDINAL";
+          else if (["SHORT_TEXT", "LONG_TEXT"].includes(value)) updated.encoding_type = "TFIDF";
+          else updated.encoding_type = "NONE";
         }
         return updated;
       }
@@ -90,7 +125,7 @@ export default function NewDatasetPage() {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault(); 
   };
 
   const handleDrop = (e: React.DragEvent, targetIndex: number) => {
@@ -111,7 +146,6 @@ export default function NewDatasetPage() {
       return;
     }
 
-    // Validate columns
     if (columns.some(c => !c.column_name.trim())) {
       setError("All columns must have a name.");
       return;
@@ -121,7 +155,6 @@ export default function NewDatasetPage() {
     setError(null);
 
     try {
-      // 1. Create Dataset
       const { data: datasetData, error: datasetError } = await supabase
         .from("datasets")
         .insert({
@@ -137,16 +170,17 @@ export default function NewDatasetPage() {
 
       if (datasetError) throw datasetError;
 
-      // 2. Create Columns
       const columnsToInsert = columns.map((col, index) => ({
         dataset_id: datasetData.id,
-        column_name: col.column_name.toLowerCase().replace(/[^a-z0-9_]/g, '_'), // Safe SQL name
+        column_name: col.column_name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
         display_name: col.column_name,
         data_type: col.data_type,
+        semantic_type: col.semantic_type,
+        ml_role: col.ml_role,
+        encoding_type: col.encoding_type,
         required: col.required,
-        validation_rules: col.options && (col.data_type === 'SINGLE_CHOICE' || col.data_type === 'MULTIPLE_CHOICE') 
-          ? { choices: col.options.filter(o => o.trim() !== '') } 
-          : {},
+        options: col.options ? col.options.filter(o => o.trim() !== '') : [],
+        validation_rules: {},
         position: index
       }));
 
@@ -156,7 +190,6 @@ export default function NewDatasetPage() {
 
       if (colsError) throw colsError;
 
-      // 3. Success -> Show success message for FORM, else go to dataset
       if (sourceType === "FORM") {
         setCreatedDatasetId(datasetData.id);
         setStep(3);
@@ -172,8 +205,7 @@ export default function NewDatasetPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      {/* Header */}
+    <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="mb-8 flex items-center gap-4">
         <Link href="/datasets">
           <Button variant="outline" size="icon" className="w-10 h-10 rounded-full">
@@ -182,11 +214,10 @@ export default function NewDatasetPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Create New Dataset</h1>
-          <p className="text-muted-foreground text-sm">Define your dataset structure to begin collecting or importing data.</p>
+          <p className="text-muted-foreground text-sm">Define your dataset structure with Semantic Intelligence to begin collecting or importing data.</p>
         </div>
       </div>
 
-      {/* Progress Steps */}
       {step < 3 && (
         <div className="flex items-center mb-8 px-4">
           <div className={`flex items-center gap-3 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -196,21 +227,20 @@ export default function NewDatasetPage() {
           <div className={`flex-1 h-1 mx-4 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
           <div className={`flex items-center gap-3 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>2</div>
-            <span className="font-semibold text-sm">Schema</span>
+            <span className="font-semibold text-sm">Intelligent Schema</span>
           </div>
         </div>
       )}
 
       <div className="bg-card border border-border rounded-xl shadow-sm p-6 sm:p-8">
         
-        {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium border border-red-200 dark:border-red-900/50">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium border border-red-200 dark:border-red-900/50 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 shrink-0" />
             {error}
           </div>
         )}
 
-        {/* STEP 1: Details */}
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
@@ -251,7 +281,7 @@ export default function NewDatasetPage() {
                 >
                   <FileType className={`w-6 h-6 mb-2 ${sourceType === "CSV" ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="font-semibold text-sm">Import CSV</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload existing data</div>
+                  <div className="text-xs text-muted-foreground mt-1">Upload and auto-detect types</div>
                 </div>
                 <div 
                   onClick={() => setSourceType("FORM")}
@@ -273,25 +303,23 @@ export default function NewDatasetPage() {
           </div>
         )}
 
-        {/* STEP 2: Schema */}
         {step === 2 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-2">
-              <h3 className="font-semibold text-lg">Define Columns</h3>
-              <p className="text-sm text-muted-foreground">Setup the structure of your dataset. You can add more columns later.</p>
+              <h3 className="font-semibold text-lg">Define Schema & Semantic Types</h3>
+              <p className="text-sm text-muted-foreground">Assigning accurate Semantic Types allows DataLab to automatically perform advanced NLP and ML processing on your columns.</p>
             </div>
 
-            <div className="space-y-3">
-              {/* Header Row */}
+            <div className="space-y-4">
               <div className="hidden sm:grid grid-cols-12 gap-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <div className="col-span-1"></div>
-                <div className="col-span-5">Column Name</div>
-                <div className="col-span-3">Data Type</div>
-                <div className="col-span-2 text-center">Required</div>
+                <div className="col-span-4">Column Name</div>
+                <div className="col-span-3">Semantic Type</div>
+                <div className="col-span-2 text-center">ML Role</div>
+                <div className="col-span-1 text-center">Req</div>
                 <div className="col-span-1"></div>
               </div>
 
-              {/* Column Rows */}
               {columns.map((col, idx) => (
                 <div 
                   key={col.id} 
@@ -302,72 +330,96 @@ export default function NewDatasetPage() {
                   className={`bg-background border border-border p-3 sm:p-2 rounded-lg group transition-all ${draggedColIndex === idx ? 'opacity-40 border-primary border-dashed' : ''}`}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                  <div className="col-span-1 flex justify-center text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing hidden sm:flex">
-                    <GripVertical className="w-5 h-5 pointer-events-none" />
-                  </div>
-                  <div className="col-span-1 sm:hidden text-xs font-semibold text-muted-foreground uppercase mb-1">Column {idx + 1}</div>
-                  
-                  <div className="col-span-5">
-                    <input 
-                      value={col.column_name}
-                      onChange={(e) => handleColumnChange(col.id, "column_name", e.target.value)}
-                      placeholder="e.g. first_name"
-                      className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    />
-                  </div>
-                  
-                  <div className="col-span-3">
-                    <select 
-                      value={col.data_type}
-                      onChange={(e) => handleColumnChange(col.id, "data_type", e.target.value)}
-                      className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    >
-                      <option value="TEXT">Text</option>
-                      <option value="INTEGER">Integer (Whole No.)</option>
-                      <option value="DECIMAL">Decimal / Float</option>
-                      <option value="BOOLEAN">Boolean (True/False)</option>
-                      <option value="CATEGORY">Category (Tags)</option>
-                      <option value="DATE">Date</option>
-                      <option value="SINGLE_CHOICE">Single Choice</option>
-                      <option value="MULTIPLE_CHOICE">Multiple Choice</option>
-                    </select>
-                  </div>
-                  
-                  <div className="col-span-2 flex justify-start sm:justify-center items-center gap-2 mt-2 sm:mt-0">
-                    <input 
-                      type="checkbox" 
-                      checked={col.required}
-                      onChange={(e) => handleColumnChange(col.id, "required", e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="sm:hidden text-sm">Required Field</span>
-                  </div>
-                  
-                  <div className="col-span-1 flex justify-end sm:justify-center mt-2 sm:mt-0">
-                    <button 
-                      onClick={() => handleRemoveColumn(col.id)}
-                      disabled={columns.length === 1}
-                      className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Options section if type is choice */}
-                {(col.data_type === "SINGLE_CHOICE" || col.data_type === "MULTIPLE_CHOICE") && col.options && (
-                  <div className="mt-3 pl-0 sm:pl-12 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {col.options.map((opt, optIdx) => (
-                      <input
-                        key={optIdx}
-                        value={opt}
-                        onChange={(e) => handleOptionChange(col.id, optIdx, e.target.value)}
-                        placeholder={`Option ${optIdx + 1}`}
+                    <div className="col-span-1 flex justify-center text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing hidden sm:flex">
+                      <GripVertical className="w-5 h-5 pointer-events-none" />
+                    </div>
+                    <div className="col-span-1 sm:hidden text-xs font-semibold text-muted-foreground uppercase mb-1">Column {idx + 1}</div>
+                    
+                    <div className="col-span-4">
+                      <input 
+                        value={col.column_name}
+                        onChange={(e) => handleColumnChange(col.id, "column_name", e.target.value)}
+                        placeholder="e.g. employee_age"
                         className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                       />
-                    ))}
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <select 
+                        value={col.semantic_type}
+                        onChange={(e) => handleColumnChange(col.id, "semantic_type", e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-muted text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                      >
+                        {SEMANTIC_TYPES.map(type => (
+                           <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
+                       <select 
+                        value={col.ml_role}
+                        onChange={(e) => handleColumnChange(col.id, "ml_role", e.target.value)}
+                        className={`w-full h-9 px-2 rounded-md border border-input text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none
+                          ${col.ml_role === 'TARGET' ? 'bg-primary/10 text-primary border-primary/30' : 
+                            col.ml_role === 'IGNORE' ? 'bg-muted text-muted-foreground' : 'bg-transparent'}`}
+                      >
+                        <option value="FEATURE">Feature</option>
+                        <option value="TARGET">Target</option>
+                        <option value="IGNORE">Ignore</option>
+                      </select>
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-start sm:justify-center items-center gap-2 mt-2 sm:mt-0">
+                      <input 
+                        type="checkbox" 
+                        checked={col.required}
+                        onChange={(e) => handleColumnChange(col.id, "required", e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="sm:hidden text-sm">Required</span>
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-end sm:justify-center mt-2 sm:mt-0">
+                      <button 
+                        onClick={() => handleRemoveColumn(col.id)}
+                        disabled={columns.length === 1}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
+                  
+                  {['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'ORDINAL_CHOICE'].includes(col.semantic_type) && col.options && (
+                    <div className="mt-3 pl-0 sm:pl-12">
+                      <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center justify-between">
+                        Options {col.semantic_type === 'ORDINAL_CHOICE' && "(Order matters!)"}
+                        <button onClick={() => handleColumnChange(col.id, "options", [...col.options!, ""])} className="text-primary hover:underline">
+                          + Add Option
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {col.options.map((opt, optIdx) => (
+                          <div key={optIdx} className="flex items-center gap-1">
+                            {col.semantic_type === 'ORDINAL_CHOICE' && <span className="text-[10px] text-muted-foreground w-4">{optIdx+1}.</span>}
+                            <input
+                              value={opt}
+                              onChange={(e) => handleOptionChange(col.id, optIdx, e.target.value)}
+                              placeholder={`Option ${optIdx + 1}`}
+                              className="w-full h-8 px-2 rounded-md border border-input bg-transparent text-sm focus:ring-1 focus:ring-primary/50 outline-none"
+                            />
+                            <button 
+                              onClick={() => handleColumnChange(col.id, "options", col.options!.filter((_, i) => i !== optIdx))}
+                              className="text-muted-foreground hover:text-red-500 p-1"
+                            >
+                               &times;
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -392,7 +444,6 @@ export default function NewDatasetPage() {
           </div>
         )}
 
-        {/* STEP 3: Success (Form Only) */}
         {step === 3 && (
           <div className="space-y-6 animate-in zoom-in-95 duration-500 text-center py-8">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-50 shadow-sm">
@@ -400,7 +451,7 @@ export default function NewDatasetPage() {
             </div>
             <h2 className="text-3xl font-bold tracking-tight">Dataset Created Successfully!</h2>
             <p className="text-muted-foreground max-w-md mx-auto text-lg">
-              Your dataset is ready. You can now share the public form link below to start collecting data from your users.
+              Your intelligent schema has been saved. Share the public form link below to start collecting properly-typed data.
             </p>
             
             <div className="bg-muted/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-border mt-8 max-w-lg mx-auto shadow-inner">

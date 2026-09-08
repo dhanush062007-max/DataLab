@@ -6,10 +6,15 @@ from app.core.supabase import get_supabase_client
 import pandas as pd
 import json
 import math
+import numpy as np
 
 try:
     from sklearn.model_selection import train_test_split
-    from sklearn.preprocessing import LabelEncoder
+    from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, OrdinalEncoder
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
     from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
     from sklearn.linear_model import LogisticRegression, LinearRegression
     from sklearn.metrics import accuracy_score, mean_squared_error, r2_score, f1_score, confusion_matrix
@@ -45,21 +50,64 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         if col not in df.columns:
             raise HTTPException(status_code=400, detail=f"Feature column '{col}' not found.")
             
+    # Fetch dataset columns definitions to get semantic types
+    cols_query = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).execute()
+    col_defs = {c["column_name"]: c for c in cols_query.data}
+    
     # 3. Preprocessing (Drop missing target rows, simple imputation for features)
     df = df.dropna(subset=[request.target_column])
     X = df[request.feature_columns].copy()
     y = df[request.target_column].copy()
     
     try:
-        # Simple label encoding for string columns
-        label_encoders = {}
-        for col in X.columns:
-            if pd.api.types.is_numeric_dtype(X[col]):
-                X[col] = X[col].fillna(X[col].mean())
+        transformers = []
+        feature_names_mapping = {}
+        
+        for col in request.feature_columns:
+            col_def = col_defs.get(col, {})
+            semantic_type = col_def.get("semantic_type", "UNKNOWN")
+            encoding = col_def.get("encoding_type", "NONE")
+            
+            if semantic_type in ["INTEGER", "DECIMAL"] or pd.api.types.is_numeric_dtype(X[col]):
+                X[col] = pd.to_numeric(X[col], errors='coerce')
+                transformers.append((
+                    f"num_{col}", 
+                    Pipeline([
+                        ('imputer', SimpleImputer(strategy='mean')),
+                        ('scaler', StandardScaler())
+                    ]), 
+                    [col]
+                ))
+            elif semantic_type in ["CATEGORY", "SINGLE_CHOICE"]:
+                X[col] = X[col].astype(str)
+                transformers.append((
+                    f"cat_{col}", 
+                    Pipeline([
+                        ('imputer', SimpleImputer(strategy='constant', fill_value='Missing')),
+                        ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+                    ]), 
+                    [col]
+                ))
+            elif semantic_type in ["SHORT_TEXT", "LONG_TEXT"]:
+                X[col] = X[col].fillna("").astype(str)
+                transformers.append((
+                    f"txt_{col}", 
+                    TfidfVectorizer(max_features=1000, stop_words='english'), 
+                    col
+                ))
             else:
-                X[col] = X[col].fillna('Missing')
-                le = LabelEncoder()
-                X[col] = le.fit_transform(X[col].astype(str))
+                # Default fallback
+                X[col] = X[col].astype(str)
+                transformers.append((
+                    f"cat_default_{col}", 
+                    Pipeline([
+                        ('imputer', SimpleImputer(strategy='constant', fill_value='Missing')),
+                        ('encoder', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1))
+                    ]), 
+                    [col]
+                ))
+                
+        preprocessor = ColumnTransformer(transformers=transformers, remainder='drop')
                 
         # Encode target if classification
         is_classification = "CLASSIFIER" in request.algorithm or "LOGISTIC" in request.algorithm
@@ -67,9 +115,6 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
             le_y = LabelEncoder()
             y = le_y.fit_transform(y.astype(str))
             
-        # Split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        
         # 4. Train
         if request.algorithm == "RANDOM_FOREST_CLASSIFIER":
             model = RandomForestClassifier(random_state=42)
@@ -82,8 +127,15 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported algorithm: {request.algorithm}")
             
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        # Create full pipeline
+        clf = Pipeline(steps=[('preprocessor', preprocessor),
+                              ('classifier', model)])
+                              
+        # Split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
         
         # 5. Metrics & Feature Importances
         metrics = {}
@@ -108,16 +160,26 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
                 metrics[k] = v_float
                 
         feature_importances = {}
-        if hasattr(model, 'feature_importances_'):
-            importances = model.feature_importances_
-            for i, col in enumerate(X.columns):
-                val = float(importances[i])
-                feature_importances[col] = 0.0 if math.isnan(val) else val
-        elif hasattr(model, 'coef_'):
-            importances = model.coef_[0] if len(model.coef_.shape) > 1 else model.coef_
-            for i, col in enumerate(X.columns):
-                val = float(abs(importances[i]))
-                feature_importances[col] = 0.0 if math.isnan(val) else val
+        # Try to extract feature names if possible (complex with ColumnTransformer in older sklearn)
+        try:
+            feat_names = clf.named_steps['preprocessor'].get_feature_names_out()
+        except:
+            feat_names = [f"Feature_{i}" for i in range(len(request.feature_columns))]
+            
+        actual_model = clf.named_steps['classifier']
+        
+        if hasattr(actual_model, 'feature_importances_'):
+            importances = actual_model.feature_importances_
+            for i, name in enumerate(feat_names):
+                if i < len(importances):
+                    val = float(importances[i])
+                    feature_importances[name] = 0.0 if math.isnan(val) else val
+        elif hasattr(actual_model, 'coef_'):
+            importances = actual_model.coef_[0] if len(actual_model.coef_.shape) > 1 else actual_model.coef_
+            for i, name in enumerate(feat_names):
+                if i < len(importances):
+                    val = float(abs(importances[i]))
+                    feature_importances[name] = 0.0 if math.isnan(val) else val
                 
         # Normalize feature importances to sum to 1 for percentage display
         total_importance = sum(feature_importances.values())
@@ -128,8 +190,9 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         # Sort feature importances
         feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1], reverse=True))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Model training failed: {str(e)}. Please check if your dataset is compatible with this algorithm.")
-
 
     # 6. Return computed data (Frontend will save to DB)
     experiment_data = {

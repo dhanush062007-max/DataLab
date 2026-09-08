@@ -44,7 +44,7 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
     return (
       <div className="h-64 flex flex-col items-center justify-center text-muted-foreground bg-card border border-border rounded-xl">
         <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
-        <p>Crunching numbers with Pandas...</p>
+        <p>Crunching numbers with Intelligent Type Detection...</p>
       </div>
     );
   }
@@ -64,13 +64,11 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
   if (!stats || stats.total_rows === 0) {
     return (
       <div className="p-8 text-center bg-card border border-border rounded-xl">
-        <h3 className="font-bold text-lg mb-2">HOT RELOAD TEST</h3>
-        <p className="text-muted-foreground text-sm">If you see this, the frontend updated. Upload a CSV or add records manually to see Exploratory Data Analysis (EDA).</p>
+        <h3 className="font-bold text-lg mb-2">No Data Available</h3>
+        <p className="text-muted-foreground text-sm">Upload a CSV or add records manually to see Exploratory Data Analysis (EDA).</p>
       </div>
     );
   }
-
-  const COLORS = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"];
 
   return (
     <div className="space-y-6">
@@ -103,10 +101,25 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
           <div key={col.name} className="bg-card border border-border rounded-xl p-5 shadow-sm hover:border-primary/50 transition-colors">
             <div className="flex justify-between items-start mb-4">
               <h4 className="font-bold truncate" title={col.name}>{col.name}</h4>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted font-mono uppercase tracking-wider">{col.type}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider
+                ${col.semantic_type === 'UNKNOWN' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary border border-primary/20'}
+              `}>
+                {col.semantic_type || col.type}
+              </span>
             </div>
             
-            {col.is_numeric ? (
+            {['LONG_TEXT', 'SHORT_TEXT'].includes(col.semantic_type) ? (
+              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
+                <div>
+                  <div className="text-muted-foreground text-xs">Avg Length</div>
+                  <div className="font-semibold">{col.avg_length !== undefined ? col.avg_length.toFixed(1) + ' chars' : 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-xs">Avg Words</div>
+                  <div className="font-semibold">{col.avg_words !== undefined ? col.avg_words.toFixed(1) + ' words' : 'N/A'}</div>
+                </div>
+              </div>
+            ) : col.is_numeric ? (
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
                 <div>
                   <div className="text-muted-foreground text-xs">Mean</div>
@@ -127,13 +140,18 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground font-semibold mb-2">Top Categories</div>
+                <div className="text-xs text-muted-foreground font-semibold mb-2">
+                  {col.semantic_type === 'MULTIPLE_CHOICE' || col.semantic_type === 'TAGS' ? 'Top Tags/Options' : 'Top Categories'}
+                </div>
                 {col.top_categories?.map((cat: any, i: number) => (
                   <div key={i} className="flex justify-between items-center text-sm">
                     <span className="truncate max-w-[150px]">{cat.name === 'None' ? '(Missing)' : cat.name}</span>
-                    <span className="font-semibold">{cat.count}</span>
+                    <span className="font-semibold text-primary">{cat.count}</span>
                   </div>
                 ))}
+                {(!col.top_categories || col.top_categories.length === 0) && (
+                   <span className="text-xs text-muted-foreground italic">No values to display.</span>
+                )}
               </div>
             )}
             

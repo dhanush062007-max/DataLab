@@ -19,9 +19,20 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Auto-select features initially
-    if (columns && columns.length > 0 && featureColumns.length === 0) {
-      setFeatureColumns(columns.map(c => c.column_name));
+    if (columns && columns.length > 0) {
+      // Find default target
+      const defaultTarget = columns.find(c => c.ml_role === 'TARGET')?.column_name;
+      if (defaultTarget && !targetColumn) {
+        setTargetColumn(defaultTarget);
+      }
+      
+      // Find default features
+      if (featureColumns.length === 0) {
+        const defaultFeatures = columns
+          .filter(c => c.ml_role === 'FEATURE' || (c.ml_role !== 'IGNORE' && c.ml_role !== 'TARGET' && c.column_name !== defaultTarget))
+          .map(c => c.column_name);
+        setFeatureColumns(defaultFeatures);
+      }
     }
   }, [columns]);
 
@@ -76,7 +87,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Training failed");
 
-      // Save to Supabase (Explicitly generate a unique ID to prevent any DB constraint issues)
+      // Save to Supabase
       const payload = { 
         ...data, 
         id: crypto.randomUUID(),
@@ -124,8 +135,10 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                 onChange={e => setTargetColumn(e.target.value)}
               >
                 <option value="">-- Select Target --</option>
-                {columns.map(col => (
-                  <option key={col.id} value={col.column_name}>{col.display_name || col.column_name}</option>
+                {columns.filter(c => c.ml_role !== 'IGNORE').map(col => (
+                  <option key={col.id} value={col.column_name}>
+                    {col.display_name || col.column_name} ({col.semantic_type || col.data_type})
+                  </option>
                 ))}
               </select>
             </div>
@@ -145,22 +158,44 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Features (Input variables)</label>
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                {columns.map(col => (
-                  <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1.5 rounded">
-                    <input 
-                      type="checkbox" 
-                      className="rounded border-border text-primary focus:ring-primary accent-primary"
-                      checked={featureColumns.includes(col.column_name)}
-                      onChange={() => toggleFeature(col.column_name)}
-                      disabled={col.column_name === targetColumn}
-                    />
-                    <span className={col.column_name === targetColumn ? "text-muted-foreground line-through" : ""}>
-                      {col.display_name || col.column_name}
-                    </span>
-                  </label>
-                ))}
+              <label className="block text-sm font-semibold mb-2 flex justify-between items-center">
+                <span>Features (Input variables)</span>
+                <span className="text-xs font-normal text-muted-foreground">{featureColumns.length} selected</span>
+              </label>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 bg-background border border-border rounded-md p-2">
+                {columns.map(col => {
+                  const isTarget = col.column_name === targetColumn;
+                  const isIgnored = col.ml_role === 'IGNORE';
+                  return (
+                    <label 
+                      key={col.id} 
+                      className={`flex items-start gap-2 text-sm cursor-pointer p-2 rounded transition-colors
+                        ${isIgnored ? 'opacity-50' : 'hover:bg-muted'}
+                        ${featureColumns.includes(col.column_name) ? 'bg-primary/5 border-primary/20 border' : 'border border-transparent'}
+                      `}
+                    >
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-border text-primary focus:ring-primary accent-primary mt-0.5"
+                        checked={featureColumns.includes(col.column_name)}
+                        onChange={() => toggleFeature(col.column_name)}
+                        disabled={isTarget || isIgnored}
+                      />
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${isTarget ? "text-muted-foreground line-through" : ""}`}>
+                          {col.display_name || col.column_name}
+                        </span>
+                        <div className="flex gap-1 mt-1">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground tracking-wider uppercase">
+                            {col.semantic_type || col.data_type}
+                          </span>
+                          {isIgnored && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">Ignored</span>}
+                          {col.ml_role === 'TARGET' && !isTarget && <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Target</span>}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
@@ -199,66 +234,96 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
               <BrainCircuit className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Ready to Train</h2>
+            <h3 className="text-xl font-bold mb-2">Ready to Train</h3>
             <p className="text-muted-foreground max-w-md">
-              Configure your model on the left by selecting what you want to predict and what data to use. Click train to see the magic happen!
+              DataLab's NLP pipeline will automatically apply TF-IDF to Text columns, One-Hot Encoding to Categories, and standard scaling to Numerics.
             </p>
           </div>
         ) : training ? (
-          <div className="h-full min-h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 shadow-sm relative overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-primary/5 animate-pulse"></div>
-             <BrainCircuit className="w-16 h-16 text-primary animate-bounce mb-6" />
-             <h2 className="text-xl font-bold mb-2">Training in Progress...</h2>
-             <p className="text-muted-foreground">Feeding data to the algorithm and tuning parameters.</p>
+          <div className="h-full min-h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 shadow-sm">
+            <div className="relative mb-8">
+              <div className="w-24 h-24 rounded-full border-4 border-muted border-t-primary animate-spin"></div>
+              <BrainCircuit className="w-10 h-10 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <h3 className="text-xl font-bold mb-2 animate-pulse">Training in Progress...</h3>
+            <p className="text-muted-foreground">
+              Applying ColumnTransformers, generating TF-IDF sparse matrices, and optimizing hyperparameters...
+            </p>
           </div>
-        ) : result ? (
-          <div className="space-y-6">
-            
-            {/* Metrics Overview */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {Object.entries(result.metrics || {}).filter(([k]) => k !== 'confusion_matrix').map(([key, val]: any) => (
-                <div key={key} className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-1">{key.replace('_', ' ')}</span>
-                  <span className="text-2xl font-black text-primary">
-                    {typeof val === 'number' ? (val % 1 !== 0 ? val.toFixed(4) : val) : val}
-                  </span>
-                </div>
-              ))}
+        ) : (
+          <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Training Complete</h3>
+                <p className="text-sm text-muted-foreground">Algorithm: {result.algorithm}</p>
+              </div>
             </div>
 
-            {/* Feature Importances */}
-            {result.feature_importances && Object.keys(result.feature_importances).length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Feature Importance
-                </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-muted/50 rounded-xl p-5 border border-border">
+                <div className="flex items-center gap-2 mb-4 text-muted-foreground font-semibold">
+                  <BarChart3 className="w-5 h-5" /> Performance Metrics
+                </div>
                 <div className="space-y-4">
-                  {Object.entries(result.feature_importances)
-                    .sort((a: any, b: any) => b[1] - a[1])
-                    .slice(0, 10)
-                    .map(([feat, imp]: any) => (
-                    <div key={feat}>
+                  {Object.entries(result.metrics).map(([key, val]: [string, any]) => (
+                    <div key={key}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">{feat}</span>
-                        <span className="text-muted-foreground">{(imp * 100).toFixed(1)}%</span>
+                        <span className="capitalize">{key.replace('_', ' ')}</span>
+                        <span className="font-bold font-mono">
+                          {typeof val === 'number' ? (val < 1 ? val.toFixed(4) : val.toFixed(2)) : String(val)}
+                        </span>
                       </div>
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-primary/80 rounded-full" 
-                          style={{ width: `${Math.max(1, imp * 100)}%` }}
+                          className="h-full bg-primary" 
+                          style={{ width: typeof val === 'number' && val <= 1 ? `${val * 100}%` : '100%' }}
                         ></div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
+              <div className="bg-muted/50 rounded-xl p-5 border border-border">
+                <div className="flex items-center gap-2 mb-4 text-muted-foreground font-semibold">
+                  <TrendingUp className="w-5 h-5" /> Feature Importance
+                </div>
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                  {Object.entries(result.feature_importances).slice(0, 8).map(([feature, imp]: [string, any]) => (
+                    <div key={feature}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="truncate max-w-[150px]" title={feature}>{feature}</span>
+                        <span className="font-bold">{(imp * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-500" 
+                          style={{ width: `${imp * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(result.feature_importances).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Importances not available for this algorithm.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setResult(null)}>
+                Train Another Model <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </div>
-        ) : null}
+        )}
       </div>
-
+      
     </div>
   );
 }
