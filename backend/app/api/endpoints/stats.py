@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
 from supabase import Client
@@ -12,6 +12,7 @@ except ImportError:
     pass
 
 router = APIRouter()
+from app.main import limiter
 
 class StatsRequest(BaseModel):
     test_type: str # T_TEST_IND, T_TEST_PAIRED, ANOVA, PEARSON, SPEARMAN, CHI_SQUARE
@@ -49,7 +50,8 @@ def get_interpretation(p_value: float, test_type: str, var_a: str, var_b: str = 
     return "Test completed."
 
 @router.post("/{dataset_id}/stats/run")
-async def run_statistical_test(dataset_id: str, request: StatsRequest, supabase: Client = Depends(get_supabase_client)):
+@limiter.limit("10/minute")
+async def run_statistical_test(request: Request, dataset_id: str, stats_req: StatsRequest, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch current dataset records
     query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id)
     response = query.execute()
@@ -69,74 +71,74 @@ async def run_statistical_test(dataset_id: str, request: StatsRequest, supabase:
         def clean_data(cols):
             return df[cols].dropna()
 
-        if request.test_type == "T_TEST_IND":
-            if not request.group_by:
+        if stats_req.test_type == "T_TEST_IND":
+            if not stats_req.group_by:
                 raise ValueError("group_by variable is required for Independent T-Test")
-            clean_df = clean_data([request.variable_a, request.group_by])
-            groups = [group[request.variable_a].values for name, group in clean_df.groupby(request.group_by)]
+            clean_df = clean_data([stats_req.variable_a, stats_req.group_by])
+            groups = [group[stats_req.variable_a].values for name, group in clean_df.groupby(stats_req.group_by)]
             if len(groups) != 2:
-                raise ValueError(f"Independent T-Test requires exactly 2 groups in '{request.group_by}'. Found {len(groups)}.")
+                raise ValueError(f"Independent T-Test requires exactly 2 groups in '{stats_req.group_by}'. Found {len(groups)}.")
             res = stats.ttest_ind(groups[0], groups[1], equal_var=False) # Welch's t-test by default is safer
             stat_val = res.statistic
             p_val = res.pvalue
             dof = getattr(res, 'df', None)
 
-        elif request.test_type == "ANOVA":
-            if not request.group_by:
+        elif stats_req.test_type == "ANOVA":
+            if not stats_req.group_by:
                 raise ValueError("group_by variable is required for ANOVA")
-            clean_df = clean_data([request.variable_a, request.group_by])
-            groups = [group[request.variable_a].values for name, group in clean_df.groupby(request.group_by)]
+            clean_df = clean_data([stats_req.variable_a, stats_req.group_by])
+            groups = [group[stats_req.variable_a].values for name, group in clean_df.groupby(stats_req.group_by)]
             if len(groups) < 2:
-                raise ValueError(f"ANOVA requires at least 2 groups in '{request.group_by}'.")
+                raise ValueError(f"ANOVA requires at least 2 groups in '{stats_req.group_by}'.")
             res = stats.f_oneway(*groups)
             stat_val = res.statistic
             p_val = res.pvalue
             
-        elif request.test_type == "T_TEST_PAIRED":
-            if not request.variable_b:
+        elif stats_req.test_type == "T_TEST_PAIRED":
+            if not stats_req.variable_b:
                 raise ValueError("variable_b is required for Paired T-Test")
-            clean_df = clean_data([request.variable_a, request.variable_b])
-            res = stats.ttest_rel(clean_df[request.variable_a], clean_df[request.variable_b])
+            clean_df = clean_data([stats_req.variable_a, stats_req.variable_b])
+            res = stats.ttest_rel(clean_df[stats_req.variable_a], clean_df[stats_req.variable_b])
             stat_val = res.statistic
             p_val = res.pvalue
             dof = getattr(res, 'df', None)
 
-        elif request.test_type in ["PEARSON", "SPEARMAN"]:
-            if not request.variable_b:
-                raise ValueError(f"variable_b is required for {request.test_type}")
-            clean_df = clean_data([request.variable_a, request.variable_b])
-            if request.test_type == "PEARSON":
-                res = stats.pearsonr(clean_df[request.variable_a], clean_df[request.variable_b])
+        elif stats_req.test_type in ["PEARSON", "SPEARMAN"]:
+            if not stats_req.variable_b:
+                raise ValueError(f"variable_b is required for {stats_req.test_type}")
+            clean_df = clean_data([stats_req.variable_a, stats_req.variable_b])
+            if stats_req.test_type == "PEARSON":
+                res = stats.pearsonr(clean_df[stats_req.variable_a], clean_df[stats_req.variable_b])
             else:
-                res = stats.spearmanr(clean_df[request.variable_a], clean_df[request.variable_b])
+                res = stats.spearmanr(clean_df[stats_req.variable_a], clean_df[stats_req.variable_b])
             stat_val = res.statistic
             p_val = res.pvalue
 
-        elif request.test_type == "CHI_SQUARE":
-            if not request.variable_b:
+        elif stats_req.test_type == "CHI_SQUARE":
+            if not stats_req.variable_b:
                 raise ValueError("variable_b is required for Chi-Square test")
-            clean_df = clean_data([request.variable_a, request.variable_b])
-            contingency_table = pd.crosstab(clean_df[request.variable_a], clean_df[request.variable_b])
+            clean_df = clean_data([stats_req.variable_a, stats_req.variable_b])
+            contingency_table = pd.crosstab(clean_df[stats_req.variable_a], clean_df[stats_req.variable_b])
             res = stats.chi2_contingency(contingency_table)
             stat_val = res.statistic
             p_val = res.pvalue
             dof = res.dof
         else:
-            raise ValueError(f"Unsupported test type: {request.test_type}")
+            raise ValueError(f"Unsupported test type: {stats_req.test_type}")
             
         # Clean NaNs for JSON
         if stat_val is not None and math.isnan(stat_val): stat_val = None
         if p_val is not None and math.isnan(p_val): p_val = None
         if dof is not None and math.isnan(dof): dof = None
 
-        interpretation = get_interpretation(p_val, request.test_type, request.variable_a, request.variable_b, request.group_by)
+        interpretation = get_interpretation(p_val, stats_req.test_type, stats_req.variable_a, stats_req.variable_b, stats_req.group_by)
 
         test_data = {
             "dataset_id": dataset_id,
-            "test_type": request.test_type,
-            "variable_a": request.variable_a,
-            "variable_b": request.variable_b,
-            "group_by": request.group_by,
+            "test_type": stats_req.test_type,
+            "variable_a": stats_req.variable_a,
+            "variable_b": stats_req.variable_b,
+            "group_by": stats_req.group_by,
             "test_statistic": stat_val,
             "p_value": p_val,
             "degrees_of_freedom": dof,

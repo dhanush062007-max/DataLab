@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 from supabase import Client
@@ -23,6 +23,7 @@ except ImportError:
 
 router = APIRouter()
 
+from app.main import limiter
 class TrainRequest(BaseModel):
     model_name: str
     target_column: str
@@ -31,7 +32,8 @@ class TrainRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 @router.post("/{dataset_id}/train")
-async def train_model(dataset_id: str, request: TrainRequest, supabase: Client = Depends(get_supabase_client)):
+@limiter.limit("5/minute")
+async def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supabase: Client = Depends(get_supabase_client)):
     # 1. Fetch current dataset records
     query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id)
     response = query.execute()
@@ -43,10 +45,10 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
     df = pd.DataFrame([r["data"] for r in records])
     
     # 2. Validate columns
-    if request.target_column not in df.columns:
-        raise HTTPException(status_code=400, detail=f"Target column '{request.target_column}' not found.")
+    if train_req.target_column not in df.columns:
+        raise HTTPException(status_code=400, detail=f"Target column '{train_req.target_column}' not found.")
         
-    for col in request.feature_columns:
+    for col in train_req.feature_columns:
         if col not in df.columns:
             raise HTTPException(status_code=400, detail=f"Feature column '{col}' not found.")
             
@@ -54,10 +56,9 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
     cols_query = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).execute()
     col_defs = {c["column_name"]: c for c in cols_query.data}
     
-    # 3. Preprocessing (Drop missing target rows, simple imputation for features)
-    df = df.dropna(subset=[request.target_column])
-    X = df[request.feature_columns].copy()
-    y = df[request.target_column].copy()
+    df = df.dropna(subset=[train_req.target_column])
+    X = df[train_req.feature_columns].copy()
+    y = df[train_req.target_column].copy()
     
     try:
         transformers = []
@@ -120,17 +121,24 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
             except Exception:
                 raise HTTPException(status_code=400, detail="You selected a Regression algorithm, but your Target Variable contains text categories. Please change your algorithm to Classification (e.g. Random Forest Classifier), or choose a numeric Target Variable.")
             
-        # 4. Train
-        if request.algorithm == "RANDOM_FOREST_CLASSIFIER":
-            model = RandomForestClassifier(random_state=42)
-        elif request.algorithm == "RANDOM_FOREST_REGRESSOR":
-            model = RandomForestRegressor(random_state=42)
-        elif request.algorithm == "LINEAR_REGRESSION":
-            model = LinearRegression()
-        elif request.algorithm == "LOGISTIC_REGRESSION":
-            model = LogisticRegression(max_iter=1000)
+        # 5. Initialize model based on algorithm
+        model = None
+        task_type = "classification"
+        
+        if train_req.algorithm == "RANDOM_FOREST_CLASSIFIER":
+            model = RandomForestClassifier(**train_req.parameters)
+            task_type = "classification"
+        elif train_req.algorithm == "RANDOM_FOREST_REGRESSOR":
+            model = RandomForestRegressor(**train_req.parameters)
+            task_type = "regression"
+        elif train_req.algorithm == "LINEAR_REGRESSION":
+            model = LinearRegression(**train_req.parameters)
+            task_type = "regression"
+        elif train_req.algorithm == "LOGISTIC_REGRESSION":
+            model = LogisticRegression(max_iter=1000, **train_req.parameters)
+            task_type = "classification"
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported algorithm: {request.algorithm}")
+            raise HTTPException(status_code=400, detail=f"Unsupported algorithm '{train_req.algorithm}'")
             
         # Create full pipeline
         clf = Pipeline(steps=[('preprocessor', preprocessor),
@@ -169,7 +177,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         try:
             feat_names = clf.named_steps['preprocessor'].get_feature_names_out()
         except:
-            feat_names = [f"Feature_{i}" for i in range(len(request.feature_columns))]
+            feat_names = [f"Feature_{i}" for i in range(len(train_req.feature_columns))]
             
         actual_model = clf.named_steps['classifier']
         
@@ -199,16 +207,16 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Model training failed: {str(e)}. Please check if your dataset is compatible with this algorithm.")
 
-    # 6. Return computed data (Frontend will save to DB)
+    # 9. Save experiment record
     experiment_data = {
         "dataset_id": dataset_id,
-        "model_name": request.model_name,
-        "algorithm": request.algorithm,
-        "target_column": request.target_column,
-        "feature_columns": request.feature_columns,
+        "name": f"{train_req.algorithm} - {train_req.target_column}",
+        "target_column": train_req.target_column,
+        "feature_columns": train_req.feature_columns,
+        "algorithm": train_req.algorithm,
+        "parameters": train_req.parameters,
         "metrics": metrics,
-        "feature_importances": feature_importances,
-        "status": "COMPLETED"
+        "status": "completed"
     }
     
     return experiment_data
