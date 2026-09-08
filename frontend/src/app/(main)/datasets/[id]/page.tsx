@@ -586,17 +586,17 @@ function DatasetWorkspaceContent() {
             
             {/* Toolbar */}
             <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-4 items-center justify-between bg-muted/20">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:justify-start">
                 <div className="font-semibold flex items-center gap-2">
                   <Grid className="w-5 h-5 text-primary" />
                   Data Explorer
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
                   {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, dataset?.row_count || 0)} of ${dataset?.row_count || 0}` : `0 of ${dataset?.row_count || 0}`}
                 </span>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="flex items-center gap-1 mr-2">
+              <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                <div className="flex items-center gap-1 sm:mr-2">
                   <Button 
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
                     disabled={currentPage === 1} 
