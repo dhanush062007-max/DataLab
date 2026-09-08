@@ -21,8 +21,8 @@ async def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depe
     total_rows = len(df)
     
     # 3. Fetch Column Semantic Types
-    cols_resp = supabase.table("dataset_columns").select("column_name, semantic_type, display_name").eq("dataset_id", dataset_id).execute()
-    col_types = {c["column_name"]: c["semantic_type"] for c in cols_resp.data}
+    cols_resp = supabase.table("dataset_columns").select("column_name, semantic_type, display_name, data_type").eq("dataset_id", dataset_id).execute()
+    col_types = {c["column_name"]: c for c in cols_resp.data}
     
     # 4. Calculate dynamic statistics based on Semantic Type
     stats = []
@@ -30,11 +30,14 @@ async def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depe
     for col in df.columns:
         col_data = df[col]
         null_count = int(col_data.isnull().sum())
-        semantic_type = col_types.get(col, "UNKNOWN")
+        col_info = col_types.get(col, {})
+        semantic_type = col_info.get("semantic_type", "UNKNOWN")
+        data_type = col_info.get("data_type", str(col_data.dtype))
         
         col_stat = {
             "name": col,
             "type": str(col_data.dtype),
+            "data_type": data_type,
             "semantic_type": semantic_type,
             "null_count": null_count,
             "null_percentage": round((null_count / total_rows) * 100, 2) if total_rows > 0 else 0,

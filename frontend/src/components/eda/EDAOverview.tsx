@@ -104,7 +104,7 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider
                 ${col.semantic_type === 'UNKNOWN' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary border border-primary/20'}
               `}>
-                {col.semantic_type || col.type}
+                {col.semantic_type === 'UNKNOWN' ? (col.data_type || col.type) : col.semantic_type}
               </span>
             </div>
             
