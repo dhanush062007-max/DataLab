@@ -19,7 +19,7 @@ async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client
     
     # Fetch records matching active_version_id in batches to avoid 1000 row limit
     records = []
-    chunk_size = 10000
+    chunk_size = 1000
     current_offset = 0
     
     while True:

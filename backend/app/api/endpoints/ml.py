@@ -40,7 +40,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
     
     # 2. Fetch records matching active_version_id in batches to bypass PostgREST limits
     records = []
-    chunk_size = 10000
+    chunk_size = 1000
     current_offset = 0
     
     while True:
