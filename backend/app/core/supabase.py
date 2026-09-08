@@ -20,8 +20,11 @@ def get_supabase_client(authorization: str = Header(None)) -> Client:
     client = create_client(supabase_url, supabase_key)
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
-        print(f"DEBUG: Setting postgrest auth token: {token[:10]}...")
-        client.postgrest.auth(token)
+        if token and token not in ["undefined", "null"]:
+            print(f"DEBUG: Setting postgrest auth token: {token[:10]}...")
+            client.postgrest.auth(token)
+        else:
+            print(f"DEBUG: Token was undefined or null.")
     else:
         print(f"DEBUG: No valid Bearer token provided in headers.")
     return client

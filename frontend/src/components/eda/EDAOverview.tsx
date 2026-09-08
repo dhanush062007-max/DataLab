@@ -20,11 +20,14 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
       supabase.auth.getSession().then(({ data: authData }) => {
         const token = authData.session?.access_token;
         
+        const headers: HeadersInit = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/eda?t=${Date.now()}`, {
           cache: 'no-store',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers
         })
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch EDA data");

@@ -54,14 +54,18 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Authentication required");
+      
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/visualize`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
+        headers,
         body: JSON.stringify({
           chart_type: chartType,
           x_axis: xAxis,
