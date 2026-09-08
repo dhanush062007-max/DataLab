@@ -625,28 +625,28 @@ function DatasetWorkspaceContent() {
               </div>
               <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                 {/* Search Box */}
-                <div className="flex items-center gap-1 w-full sm:w-auto mr-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:mr-2">
                   <select 
-                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1"
+                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1 w-[110px] sm:w-auto truncate shrink-0"
                     value={searchColumn}
                     onChange={(e) => setSearchColumn(e.target.value)}
                   >
-                    <option value="">Select Column...</option>
+                    <option value="">All Columns</option>
                     {columns.map(c => <option key={c.column_name} value={c.column_name}>{c.display_name || c.column_name}</option>)}
                   </select>
                   <input
                     type="text"
                     placeholder="Search..."
-                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1 flex-1 sm:w-32"
+                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1 flex-1 min-w-0 sm:w-32"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                   {appliedSearchTerm ? (
-                    <Button onClick={handleClearSearch} variant="ghost" size="sm" className="h-8 px-2 text-xs">Clear</Button>
+                    <Button onClick={handleClearSearch} variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0">Clear</Button>
                   ) : (
-                    <Button onClick={handleSearch} variant="secondary" size="sm" className="h-8 px-2 text-xs">
-                      <Search className="w-3 h-3 mr-1" /> Search
+                    <Button onClick={handleSearch} variant="secondary" size="sm" className="h-8 px-2 text-xs shrink-0">
+                      <Search className="w-3 h-3 sm:mr-1" /> <span className="hidden sm:inline">Search</span>
                     </Button>
                   )}
                 </div>
