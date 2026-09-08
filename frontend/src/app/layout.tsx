@@ -29,10 +29,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
                   document.documentElement.classList.add('dark');
-                } else {
+                } else if (savedTheme === 'light') {
                   document.documentElement.classList.remove('dark');
+                } else {
+                  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
                 }
               } catch (_) {}
             `,
