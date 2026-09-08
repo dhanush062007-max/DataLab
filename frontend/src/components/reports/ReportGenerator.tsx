@@ -67,18 +67,31 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
     if (!reportElement) return;
 
     setExporting(true);
+    
+    // Temporarily force desktop width so mobile exports look like A4 sheets
+    const originalWidth = reportElement.style.width;
+    const originalMaxWidth = reportElement.style.maxWidth;
+    reportElement.style.width = "1024px";
+    reportElement.style.maxWidth = "1024px";
 
     try {
+      // Allow browser to re-paint the desktop width
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const domtoimage = (await import("dom-to-image-more")).default;
       const { jsPDF } = await import("jspdf");
 
-      // We use dom-to-image-more to bypass html2canvas's CSS parsing limits (e.g. oklch/lab colors)
+      const scale = 2; // Double resolution for crystal clear text
       const imgData = await domtoimage.toPng(reportElement, {
         quality: 1,
         bgcolor: '#ffffff',
+        width: reportElement.scrollWidth * scale,
+        height: reportElement.scrollHeight * scale,
         style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${reportElement.scrollWidth}px`,
+          height: `${reportElement.scrollHeight}px`,
         }
       });
       
@@ -89,21 +102,39 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
       });
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       
-      // Get image dimensions to scale it correctly
       const img = new Image();
       img.src = imgData;
       await new Promise((resolve) => {
         img.onload = resolve;
       });
       
+      // Calculate total scaled height of the image to fit A4 width
       const pdfHeight = (img.height * pdfWidth) / img.width;
       
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      let heightLeft = pdfHeight;
+      let position = 0;
+      
+      // First Page
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+      
+      // Additional Pages (if the report is tall)
+      while (heightLeft > 0) {
+        position -= pageHeight; // Shift the drawing coordinate up by one page
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+      
       pdf.save(`${datasetName}_Report.pdf`);
     } catch (err) {
       console.error("PDF generation failed", err);
     } finally {
+      // Restore original mobile layout
+      reportElement.style.width = originalWidth;
+      reportElement.style.maxWidth = originalMaxWidth;
       setExporting(false);
     }
   };
