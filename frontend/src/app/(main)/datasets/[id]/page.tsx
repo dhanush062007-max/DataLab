@@ -731,9 +731,9 @@ function DatasetWorkspaceContent() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-6">
                   <div className="bg-card border border-border rounded-xl shadow-sm p-6">
-                    <div className="flex items-start justify-between mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                       <div>
-                        <h2 className="text-lg font-bold flex items-center gap-2">
+                        <h2 className="text-lg font-bold flex flex-wrap items-center gap-2">
                           Public Share Link
                           {form.is_active ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Active</span>
