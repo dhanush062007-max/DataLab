@@ -118,16 +118,16 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-card border border-border rounded-xl p-6 print:hidden shadow-sm">
-        <div>
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border rounded-xl p-6 print:hidden shadow-sm">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
+            <FileText className="w-5 h-5 text-primary shrink-0" />
             Report Generator
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">Review the automated summary below, then print or save as PDF.</p>
+          <p className="text-sm text-muted-foreground mt-1 break-words">Review the automated summary below, then print or save as PDF.</p>
         </div>
-        <Button onClick={handlePrint} disabled={exporting} className="flex items-center gap-2 shadow-lg shadow-primary/20">
+        <Button onClick={handlePrint} disabled={exporting} className="flex items-center gap-2 shadow-lg shadow-primary/20 shrink-0">
           {exporting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" /> Exporting...
@@ -144,10 +144,10 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
       <div id="printable-report" className="bg-white text-black print:text-black border border-border rounded-xl p-10 print:p-0 print:border-none shadow-sm print:shadow-none min-h-[800px] mx-auto max-w-5xl">
         
         {/* Report Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 border-b border-gray-200 pb-6">
-          <div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 border-b border-gray-200 pb-6 min-w-0">
+          <div className="min-w-0 w-full sm:w-auto">
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-1">Data Analysis Report</h1>
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-600">{datasetName}</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-600 break-words">{datasetName}</h2>
           </div>
           <div className="text-left sm:text-right text-sm text-gray-500">
             <div className="flex items-center sm:justify-end gap-1 mb-1">
@@ -206,7 +206,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                           {col.null_percentage}% ({col.null_count})
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-gray-500 text-xs">
+                      <td className="py-2 px-3 text-gray-500 text-xs break-all max-w-[250px]">
                         {col.is_numeric ? `Mean: ${col.mean?.toFixed(2) || 'N/A'}, Min: ${col.min?.toFixed(2) || 'N/A'}` : `Categories: ${col.top_categories?.length || 0}`}
                       </td>
                     </tr>
@@ -235,7 +235,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                   <p className="text-sm text-gray-700 break-words mt-2">
                     <span className="font-semibold shrink-0">Variables:</span> <span className="break-all">{test.variable_a}</span> {test.variable_b ? <>& <span className="break-all">{test.variable_b}</span></> : ''}
                   </p>
-                  <p className="text-sm mt-2 font-medium text-gray-900 bg-white p-2 rounded border border-gray-100">
+                  <p className="text-sm mt-2 font-medium text-gray-900 bg-white p-2 rounded border border-gray-100 break-words">
                     {test.interpretation}
                   </p>
                 </div>
