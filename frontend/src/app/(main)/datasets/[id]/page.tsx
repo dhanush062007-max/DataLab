@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass } from "lucide-react";
+import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Papa from "papaparse";
 import Link from "next/link";
@@ -333,6 +333,44 @@ function DatasetWorkspaceContent() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      let rQuery = supabase
+        .from("dataset_records")
+        .select("data")
+        .eq("dataset_id", datasetId);
+        
+      if (dataset.active_version_id) {
+        rQuery = rQuery.eq("version_id", dataset.active_version_id);
+      } else {
+        rQuery = rQuery.is("version_id", null);
+      }
+      
+      const { data, error } = await rQuery;
+      
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        alert("No data available to export.");
+        return;
+      }
+
+      const flatData = data.map((row: any) => row.data);
+      const csv = Papa.unparse(flatData);
+      
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${dataset.name.replace(/\s+/g, "_").toLowerCase()}_export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error("Export error:", err);
+      alert(err.message || "Failed to export dataset.");
+    }
+  };
+
   if (loading) return <div className="p-12 text-center text-muted-foreground">Loading workspace...</div>;
 
   return (
@@ -520,6 +558,10 @@ function DatasetWorkspaceContent() {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{records.length} of {dataset.row_count || 0} visible</span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </Button>
                 {isOwner && (
                   <Button onClick={() => setShowAddRow(!showAddRow)} size="sm" className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />

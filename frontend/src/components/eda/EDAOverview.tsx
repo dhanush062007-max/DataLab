@@ -17,7 +17,7 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
       supabase.auth.getSession().then(({ data: authData }) => {
         const token = authData.session?.access_token;
         
-        fetch(`http://localhost:8000/api/v1/datasets/${datasetId}/eda?t=${Date.now()}`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/eda?t=${Date.now()}`, {
           cache: 'no-store',
           headers: {
             'Authorization': `Bearer ${token}`

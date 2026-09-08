@@ -31,7 +31,7 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
       const { data: authData } = await import("@/lib/supabase").then(m => m.supabase.auth.getSession());
       const token = authData.session?.access_token;
 
-      const res = await fetch(`http://localhost:8000/api/v1/datasets/${datasetId}/clean`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/clean`, {
         method: 'POST',
         cache: 'no-store',
         headers: { 

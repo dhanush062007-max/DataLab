@@ -62,7 +62,7 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Authentication required");
 
-      const res = await fetch(`http://localhost:8000/api/v1/datasets/${datasetId}/stats/run`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/stats/run`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

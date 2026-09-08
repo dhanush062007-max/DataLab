@@ -59,7 +59,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Authentication required");
 
-      const res = await fetch(`http://localhost:8000/api/v1/datasets/${datasetId}/train`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/train`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
