@@ -97,7 +97,14 @@ export default function LandingPage() {
           <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-primary/20 rounded-full blur-[100px] opacity-70 animate-pulse" />
           <div className="absolute top-1/4 right-1/4 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-500/15 rounded-full blur-[80px] animate-pulse delay-700" />
           <div className="absolute bottom-1/4 left-1/3 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-emerald-500/15 rounded-full blur-[100px] animate-pulse delay-1000" />
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+          <svg className="absolute inset-0 w-full h-full [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] text-foreground" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" strokeOpacity="0.1" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-pattern)" />
+          </svg>
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center flex flex-col items-center">
