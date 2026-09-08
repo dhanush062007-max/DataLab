@@ -57,6 +57,7 @@ function DatasetWorkspaceContent() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manual Entry State
@@ -259,9 +260,14 @@ function DatasetWorkspaceContent() {
             .eq("id", datasetId);
 
           setUploadProgress(100);
+          setUploading(false);
+          setUploadSuccess(`Successfully uploaded ${totalInserted} records!`);
           
           // Refresh data
-          window.location.reload();
+          const { data: updatedDataset } = await supabase.from("datasets").select("*").eq("id", datasetId).single();
+          if (updatedDataset) setDataset(updatedDataset);
+          setCurrentPage(1);
+          setFilteredCount(null);
 
         } catch (err: any) {
           setUploadError(err.message || "An error occurred during upload.");
@@ -773,6 +779,17 @@ function DatasetWorkspaceContent() {
                     </div>
                     <div className="text-sm text-muted-foreground">{uploadProgress}% Complete</div>
                   </div>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {uploadSuccess && (
+                <div className="m-4 p-4 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span>{uploadSuccess}</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setUploadSuccess(null)} className="h-8 hover:bg-emerald-100 dark:hover:bg-emerald-900/30">Dismiss</Button>
                 </div>
               )}
 
