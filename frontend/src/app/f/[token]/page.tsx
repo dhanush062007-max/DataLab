@@ -53,7 +53,7 @@ export default function PublicFormPage() {
         
         // Block if Only Me
         if (data.visibility === 'only_me') {
-           throw new Error("This form is closed to the public.");
+           throw new Error("This form is closed.");
         }
         
       } catch (err: any) {
