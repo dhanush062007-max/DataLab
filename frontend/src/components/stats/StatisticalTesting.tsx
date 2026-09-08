@@ -28,7 +28,8 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/datasets/${datasetId}/stats`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/api/v1/datasets/${datasetId}/stats`);
       if (res.ok) {
         const data = await res.json();
         setHistory(data);
