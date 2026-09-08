@@ -301,6 +301,15 @@ function DatasetWorkspaceContent() {
     if (!error) setForm({ ...form, rate_limit_settings: newSettings });
   };
 
+  const updateVisibility = async (newVisibility: string) => {
+    if (!form) return;
+    const { error } = await supabase
+      .from("collection_forms")
+      .update({ visibility: newVisibility })
+      .eq("id", form.id);
+    if (!error) setForm({ ...form, visibility: newVisibility });
+  };
+
   const copyLink = () => {
     const url = `${window.location.origin}/f/${form.token}`;
     navigator.clipboard.writeText(url);
@@ -775,6 +784,21 @@ function DatasetWorkspaceContent() {
                       <Button onClick={toggleFormStatus} variant={form.is_active ? "destructive" : "default"} className="w-32">
                         {form.is_active ? <><PauseCircle className="w-4 h-4 mr-2"/> Deactivate</> : <><PlayCircle className="w-4 h-4 mr-2"/> Activate</>}
                       </Button>
+                    </div>
+                    <div className="flex items-center justify-between py-4 border-b border-border">
+                      <div>
+                        <div className="font-medium">Visibility</div>
+                        <div className="text-sm text-muted-foreground">Control who can find and access this form.</div>
+                      </div>
+                      <select 
+                        value={form.visibility || 'private'}
+                        onChange={(e) => updateVisibility(e.target.value)}
+                        className="h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
+                      >
+                        <option value="public">Public (Shown on Explore Page)</option>
+                        <option value="private">Private (Link Only)</option>
+                        <option value="only_me">Only Me (Closed)</option>
+                      </select>
                     </div>
                     <div className="flex items-center justify-between py-4">
                       <div>

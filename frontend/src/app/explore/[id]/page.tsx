@@ -26,6 +26,7 @@ function ExploreDatasetContent() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [publicForm, setPublicForm] = useState<any>(null);
 
   // Sync tab state with URL changes
   useEffect(() => {
@@ -57,6 +58,16 @@ function ExploreDatasetContent() {
         return;
       }
       setDataset(dData);
+
+      // Fetch active public form if exists
+      const { data: fData } = await supabase
+        .from("collection_forms")
+        .select("token")
+        .eq("dataset_id", datasetId)
+        .eq("visibility", "public")
+        .eq("is_active", true)
+        .maybeSingle();
+      if (fData) setPublicForm(fData);
 
       // Fetch Columns
       const { data: cData } = await supabase
@@ -153,6 +164,16 @@ function ExploreDatasetContent() {
                 <span className="text-foreground">{dataset.name}</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">{dataset.name}</h1>
+              {publicForm && (
+                <div className="mb-3">
+                  <Link href={`/f/${publicForm.token}`} target="_blank">
+                    <Button variant="default" className="rounded-full px-6 flex items-center gap-2 shadow-sm hover:shadow-md transition-all">
+                      <FlaskConical className="w-4 h-4" />
+                      Submit Data to this Dataset
+                    </Button>
+                  </Link>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4" /> 
                 Published by {dataset.profiles?.full_name || "Anonymous"}

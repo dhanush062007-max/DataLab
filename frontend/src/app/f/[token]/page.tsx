@@ -50,7 +50,12 @@ export default function PublicFormPage() {
              }
            } catch(e) {}
         }
-
+        
+        // Block if Only Me
+        if (data.visibility === 'only_me') {
+           throw new Error("This form is closed to the public.");
+        }
+        
       } catch (err: any) {
         setError(err.message || "Failed to load form. It may be inactive or invalid.");
       } finally {
