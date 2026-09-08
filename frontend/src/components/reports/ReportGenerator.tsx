@@ -252,7 +252,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               {mlModels.map((model) => {
-                const isClassification = model.task_type === "CLASSIFICATION";
+                const isClassification = model.algorithm && (model.algorithm.includes("CLASSIFIER") || model.algorithm.includes("LOGISTIC"));
                 return (
                   <div key={model.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm min-w-0 flex flex-col">
                     <div className="flex justify-between items-start gap-2 mb-3">
