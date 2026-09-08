@@ -114,6 +114,11 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         if is_classification and (y.dtype == 'object' or y.dtype.name == 'category'):
             le_y = LabelEncoder()
             y = le_y.fit_transform(y.astype(str))
+        elif not is_classification:
+            try:
+                y = pd.to_numeric(y)
+            except Exception:
+                raise HTTPException(status_code=400, detail="You selected a Regression algorithm, but your Target Variable contains text categories. Please change your algorithm to Classification (e.g. Random Forest Classifier), or choose a numeric Target Variable.")
             
         # 4. Train
         if request.algorithm == "RANDOM_FOREST_CLASSIFIER":
