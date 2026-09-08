@@ -214,7 +214,6 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
         "target_column": train_req.target_column,
         "feature_columns": train_req.feature_columns,
         "algorithm": train_req.algorithm,
-        "parameters": train_req.parameters,
         "metrics": metrics,
         "feature_importances": feature_importances,
         "status": "completed"
