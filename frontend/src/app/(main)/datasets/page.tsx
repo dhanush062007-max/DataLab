@@ -27,6 +27,7 @@ function DatasetsContent() {
       const { data, error } = await supabase
         .from("datasets")
         .select("*, collection_forms(id, is_active)")
+        .eq("owner_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (!error && data) {

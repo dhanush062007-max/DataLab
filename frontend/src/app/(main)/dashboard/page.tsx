@@ -26,10 +26,10 @@ export default function DashboardPage() {
 
       // Fetch Real Metrics from Supabase
       const [datasetsRes, experimentsRes, statsRes, recentRes] = await Promise.all([
-        supabase.from("datasets").select("id, row_count", { count: "exact" }),
-        supabase.from("ml_experiments").select("id", { count: "exact" }),
-        supabase.from("statistical_tests").select("id", { count: "exact" }),
-        supabase.from("datasets").select("*").order("created_at", { ascending: false }).limit(5)
+        supabase.from("datasets").select("id, row_count", { count: "exact" }).eq("owner_id", session.user.id),
+        supabase.from("ml_experiments").select("id", { count: "exact" }).eq("owner_id", session.user.id),
+        supabase.from("statistical_tests").select("id", { count: "exact" }).eq("owner_id", session.user.id),
+        supabase.from("datasets").select("*").eq("owner_id", session.user.id).order("created_at", { ascending: false }).limit(5)
       ]);
 
       const totalRecords = datasetsRes.data?.reduce((sum, d) => sum + (d.row_count || 0), 0) || 0;
