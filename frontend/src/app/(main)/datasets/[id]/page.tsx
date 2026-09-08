@@ -756,9 +756,9 @@ function DatasetWorkspaceContent() {
                         type="text" 
                         readOnly 
                         value={`${window.location.origin}/f/${form.token}`} 
-                        className="flex-1 bg-transparent border-none text-sm font-medium focus:ring-0 outline-none px-2 text-foreground"
+                        className="flex-1 min-w-0 bg-transparent border-none text-sm font-medium focus:ring-0 outline-none px-2 text-foreground"
                       />
-                      <Button onClick={copyLink} variant={copied ? "default" : "secondary"} className={copied ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
+                      <Button onClick={copyLink} variant={copied ? "default" : "secondary"} className={`shrink-0 ${copied ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}>
                         {copied ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                         {copied ? "Copied!" : "Copy Link"}
                       </Button>
