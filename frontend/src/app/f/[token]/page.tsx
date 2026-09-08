@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 export default function PublicFormPage() {
   const params = useParams();
   const token = params.token as string;
-  
+
   const [schema, setSchema] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -22,12 +22,17 @@ export default function PublicFormPage() {
     const fetchSchema = async () => {
       try {
         const { data, error } = await supabase.rpc("get_form_schema", { p_token: token });
-        
+
         if (error) throw error;
         if (!data) throw new Error("Form not found");
+
+        // Block if Only Me
+        if (data.visibility === 'only_me') {
+           throw new Error("This form is currently inactive");
+        } 
         
         setSchema(data);
-        
+
         // Initialize form data
         const initialData: Record<string, any> = {};
         data.columns.forEach((col: any) => {
@@ -39,23 +44,18 @@ export default function PublicFormPage() {
 
         // Check if user is already submitted on load for "Only once" forms
         if (data.rate_limit_settings?.max_per_minute === 0) {
-           const limitKey = `datalab_rate_limit_${token}`;
-           try {
-             const stored = localStorage.getItem(limitKey);
-             if (stored) {
-               const history = JSON.parse(stored);
-               if (history && history.length > 0) {
-                  setSuccess(true);
-               }
-             }
-           } catch(e) {}
+          const limitKey = `datalab_rate_limit_${token}`;
+          try {
+            const stored = localStorage.getItem(limitKey);
+            if (stored) {
+              const history = JSON.parse(stored);
+              if (history && history.length > 0) {
+                setSuccess(true);
+              }
+            }
+          } catch (e) { }
         }
-        
-        // Block if Only Me
-        if (data.visibility === 'only_me') {
-           throw new Error("This form is closed.");
-        }
-        
+
       } catch (err: any) {
         setError(err.message || "Failed to load form. It may be inactive or invalid.");
       } finally {
@@ -93,11 +93,11 @@ export default function PublicFormPage() {
     const limitKey = `datalab_rate_limit_${token}`;
     const now = Date.now();
     let history: number[] = [];
-    
+
     try {
       const stored = localStorage.getItem(limitKey);
       if (stored) history = JSON.parse(stored);
-    } catch(e) {}
+    } catch (e) { }
 
     if (maxPerMinute === 0) {
       if (history.length > 0) {
@@ -123,13 +123,13 @@ export default function PublicFormPage() {
       });
 
       if (error) throw error;
-      
+
       // Save successful submission timestamp
       history.push(now);
       localStorage.setItem(limitKey, JSON.stringify(history));
-      
+
       setSuccess(true);
-      
+
     } catch (err: any) {
       setError(err.message || "Failed to submit form.");
     } finally {
@@ -178,7 +178,7 @@ export default function PublicFormPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
-        
+
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4 text-primary">
@@ -203,16 +203,16 @@ export default function PublicFormPage() {
               // Backward compatibility for datasets lacking semantic_type
               const semType = col.semantic_type || (col.data_type === "TEXT" ? "SHORT_TEXT" : col.data_type);
               const choices = col.options || col.validation_rules?.choices || [];
-              
+
               return (
                 <div key={col.id} className="space-y-2">
                   <label className="text-sm font-semibold flex items-start gap-1">
                     <span className="break-all sm:break-words flex-1 min-w-0 leading-tight pt-0.5">{col.display_name}</span>
                     {col.required && <span className="text-red-500 shrink-0 pt-0.5">*</span>}
                   </label>
-                  
+
                   {['SHORT_TEXT', 'IDENTIFIER', 'UNKNOWN', 'TEXT'].includes(semType) && (
-                    <input 
+                    <input
                       type="text"
                       value={formData[col.column_name]}
                       onChange={(e) => handleInputChange(col.column_name, e.target.value)}
@@ -220,9 +220,9 @@ export default function PublicFormPage() {
                       className="w-full h-11 px-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   )}
-                  
+
                   {semType === 'LONG_TEXT' && (
-                    <textarea 
+                    <textarea
                       value={formData[col.column_name]}
                       onChange={(e) => handleInputChange(col.column_name, e.target.value)}
                       required={col.required}
@@ -232,7 +232,7 @@ export default function PublicFormPage() {
                   )}
 
                   {['INTEGER', 'DECIMAL'].includes(semType) && (
-                    <input 
+                    <input
                       type="number"
                       step={semType === "DECIMAL" ? "any" : "1"}
                       value={formData[col.column_name]}
@@ -243,7 +243,7 @@ export default function PublicFormPage() {
                   )}
 
                   {['DATE', 'DATETIME'].includes(semType) && (
-                    <input 
+                    <input
                       type={semType === 'DATETIME' ? 'datetime-local' : 'date'}
                       value={formData[col.column_name]}
                       onChange={(e) => handleInputChange(col.column_name, e.target.value)}
@@ -254,7 +254,7 @@ export default function PublicFormPage() {
 
                   {semType === "BOOLEAN" && (
                     <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                      <input 
+                      <input
                         type="checkbox"
                         checked={formData[col.column_name]}
                         onChange={(e) => handleInputChange(col.column_name, e.target.checked)}
@@ -284,7 +284,7 @@ export default function PublicFormPage() {
                         const isChecked = (formData[col.column_name] || []).includes(choice);
                         return (
                           <label key={idx} className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                            <input 
+                            <input
                               type="checkbox"
                               checked={isChecked}
                               onChange={(e) => {
@@ -317,7 +317,7 @@ export default function PublicFormPage() {
             </div>
           </form>
         </div>
-        
+
         <div className="mt-8 text-center text-xs text-muted-foreground">
           Powered by <strong>DataLab</strong>
         </div>
