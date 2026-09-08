@@ -149,16 +149,16 @@ export default function PublicFormPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
         <div className="animate-spin text-primary mb-4"><FlaskConical className="w-8 h-8" /></div>
         <p className="text-muted-foreground font-medium">Loading form...</p>
-      </div>
+      </main>
     );
   }
 
   if (error && !schema) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
         <div className="bg-card p-8 rounded-2xl shadow-sm max-w-md w-full text-center border border-border">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">
@@ -166,13 +166,13 @@ export default function PublicFormPage() {
           </h1>
           <p className="text-muted-foreground">{error}</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
         <div className="bg-card p-8 rounded-2xl shadow-sm max-w-md w-full text-center border border-border">
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Thank You!</h1>
@@ -183,12 +183,12 @@ export default function PublicFormPage() {
             </Button>
           )}
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6">
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
