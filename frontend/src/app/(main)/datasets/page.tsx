@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
 import { useEffect, useState, useMemo, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { Database, Plus, Search, MoreVertical, Filter, Download, Trash2 } from "lucide-react";
@@ -204,7 +203,6 @@ function DatasetsContent() {
             </table>
           </div>
         )}
-      </div>
     </div>
   );
 }
