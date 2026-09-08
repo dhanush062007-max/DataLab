@@ -23,10 +23,16 @@ async def global_exception_handler(request: Request, exc: Exception):
         raise exc
     print(f"GLOBAL EXCEPTION: {exc}")
     traceback.print_exc()
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
     return JSONResponse(
         status_code=500, 
         content={"detail": str(exc), "traceback": traceback.format_exc()},
-        headers={"Access-Control-Allow-Origin": "*"}
+        headers=headers
     )
 
 import os

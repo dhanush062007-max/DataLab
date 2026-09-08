@@ -34,10 +34,34 @@ class TrainRequest(BaseModel):
 @router.post("/{dataset_id}/train")
 @limiter.limit("5/minute")
 async def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supabase: Client = Depends(get_supabase_client)):
-    # 1. Fetch current dataset records
-    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id)
-    response = query.execute()
-    records = response.data
+    # 1. Fetch current dataset and active version
+    d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
+    active_version_id = d_res.data.get("active_version_id")
+    
+    # 2. Fetch records matching active_version_id, capped at 5000 rows for memory safety during ML
+    records = []
+    chunk_size = 1000
+    current_offset = 0
+    max_records = 5000
+    
+    while len(records) < max_records:
+        query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).range(current_offset, current_offset + chunk_size - 1)
+        if active_version_id:
+            query = query.eq("version_id", active_version_id)
+        else:
+            query = query.is_("version_id", "null")
+            
+        response = query.execute()
+        fetched = response.data
+        
+        if not fetched:
+            break
+            
+        records.extend(fetched)
+        current_offset += chunk_size
+        
+    # Cap to exact max_records
+    records = records[:max_records]
     
     if not records:
         raise HTTPException(status_code=400, detail="Dataset is empty.")
