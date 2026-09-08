@@ -31,7 +31,9 @@ export default function PublicFormPage() {
         // Initialize form data
         const initialData: Record<string, any> = {};
         data.columns.forEach((col: any) => {
-          initialData[col.column_name] = col.data_type === "BOOLEAN" ? false : "";
+          if (col.data_type === "BOOLEAN") initialData[col.column_name] = false;
+          else if (col.data_type === "MULTIPLE_CHOICE") initialData[col.column_name] = [];
+          else initialData[col.column_name] = "";
         });
         setFormData(initialData);
 
@@ -56,10 +58,13 @@ export default function PublicFormPage() {
 
     // Basic required validation
     for (const col of schema.columns) {
-      if (col.required && (formData[col.column_name] === "" || formData[col.column_name] === null)) {
-        setError(`Field '${col.display_name}' is required.`);
-        setSubmitting(false);
-        return;
+      const val = formData[col.column_name];
+      if (col.required) {
+        if (val === "" || val === null || (col.data_type === "MULTIPLE_CHOICE" && Array.isArray(val) && val.length === 0)) {
+          setError(`Field '${col.display_name}' is required.`);
+          setSubmitting(false);
+          return;
+        }
       }
     }
 
@@ -212,6 +217,49 @@ export default function PublicFormPage() {
                     />
                     <span className="text-sm font-medium">Yes / True</span>
                   </label>
+                )}
+
+                {col.data_type === "SINGLE_CHOICE" && (
+                  <select
+                    value={formData[col.column_name] || ""}
+                    onChange={(e) => handleInputChange(col.column_name, e.target.value)}
+                    required={col.required}
+                    className="w-full h-11 px-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                  >
+                    <option value="" disabled>Select an option</option>
+                    {col.validation_rules?.choices?.map((choice: string, idx: number) => (
+                      <option key={idx} value={choice}>{choice}</option>
+                    ))}
+                  </select>
+                )}
+
+                {col.data_type === "MULTIPLE_CHOICE" && (
+                  <div className="space-y-2">
+                    {col.validation_rules?.choices?.map((choice: string, idx: number) => {
+                      const isChecked = (formData[col.column_name] || []).includes(choice);
+                      return (
+                        <label key={idx} className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const currentSelected = formData[col.column_name] || [];
+                              if (e.target.checked) {
+                                handleInputChange(col.column_name, [...currentSelected, choice]);
+                              } else {
+                                handleInputChange(col.column_name, currentSelected.filter((c: string) => c !== choice));
+                              }
+                            }}
+                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span className="text-sm font-medium">{choice}</span>
+                        </label>
+                      );
+                    })}
+                    {col.required && (formData[col.column_name] || []).length === 0 && (
+                      <input type="text" className="opacity-0 w-0 h-0 absolute pointer-events-none" required />
+                    )}
+                  </div>
                 )}
               </div>
             ))}
