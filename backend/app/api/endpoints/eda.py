@@ -8,81 +8,157 @@ router = APIRouter()
 
 @router.get("/{dataset_id}/eda")
 async def get_exploratory_data_analysis(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
-    # 1. Fetch records
-    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id)
-    response = query.execute()
-    records = response.data
-    
-    if not records:
-        return {"total_rows": 0, "columns": []}
-
-    # 2. Convert JSONB into Pandas DataFrame
-    df = pd.DataFrame([r["data"] for r in records])
-    total_rows = len(df)
-    
-    # 3. Fetch Column Semantic Types
+    # 1. Fetch Column Semantic Types
     cols_resp = supabase.table("dataset_columns").select("column_name, semantic_type, display_name, data_type").eq("dataset_id", dataset_id).execute()
+    if not cols_resp.data:
+        return {"total_rows": 0, "columns": []}
+        
     col_types = {c["column_name"]: c for c in cols_resp.data}
     
-    # 4. Calculate dynamic statistics based on Semantic Type
+    # Get active version to stream correct rows
+    d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
+    active_version_id = d_res.data.get("active_version_id") if d_res.data else None
+    
+    chunk_size = 1000
+    current_offset = 0
+    total_rows = 0
+    
+    from collections import Counter
+    import math
+    
+    # Initialize trackers for every column
+    trackers = {}
+    for col_name, info in col_types.items():
+        sem_type = info.get("semantic_type", "UNKNOWN")
+        trackers[col_name] = {
+            "null_count": 0,
+            "semantic_type": sem_type,
+            "data_type": info.get("data_type", "UNKNOWN"),
+            "is_numeric": sem_type in ["INTEGER", "DECIMAL"],
+            "numeric_values": [], # Used to store numbers in-memory for precise median/std
+            "value_counts": Counter(), # For categorical/fallback
+            "text_length_sum": 0,
+            "text_words_sum": 0,
+            "text_valid_count": 0
+        }
+    
+    # 2. Stream Data Chunk by Chunk
+    while True:
+        query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).order("id").range(current_offset, current_offset + chunk_size - 1)
+        if active_version_id:
+            query = query.eq("version_id", active_version_id)
+        else:
+            query = query.is_("version_id", "null")
+            
+        res = query.execute()
+        if not res.data:
+            break
+            
+        fetched = res.data
+        total_rows += len(fetched)
+        
+        for r in fetched:
+            row_data = r["data"]
+            for col_name, tracker in trackers.items():
+                val = row_data.get(col_name)
+                
+                if val is None or val == "":
+                    tracker["null_count"] += 1
+                    continue
+                    
+                sem_type = tracker["semantic_type"]
+                
+                # Numeric
+                if tracker["is_numeric"]:
+                    try:
+                        num_val = float(val)
+                        tracker["numeric_values"].append(num_val)
+                    except (ValueError, TypeError):
+                        tracker["null_count"] += 1
+                        
+                # Categorical/Tags
+                elif sem_type in ["MULTIPLE_CHOICE", "TAGS"]:
+                    if isinstance(val, list):
+                        for item in val:
+                            tracker["value_counts"][str(item).strip()] += 1
+                    else:
+                        for item in str(val).split(','):
+                            tracker["value_counts"][item.strip()] += 1
+                            
+                # Text
+                elif sem_type in ["SHORT_TEXT", "LONG_TEXT"]:
+                    str_val = str(val).strip()
+                    if str_val:
+                        tracker["text_length_sum"] += len(str_val)
+                        tracker["text_words_sum"] += len(str_val.split())
+                        tracker["text_valid_count"] += 1
+                        
+                # Fallback for CATEGORY, BOOLEAN, etc
+                else:
+                    tracker["value_counts"][str(val)] += 1
+                    
+        if len(fetched) < chunk_size:
+            break
+            
+        current_offset += chunk_size
+        
+    # 3. Finalize Statistics
     stats = []
     
-    for col in df.columns:
-        col_data = df[col]
-        null_count = int(col_data.isnull().sum())
-        col_info = col_types.get(col, {})
-        semantic_type = col_info.get("semantic_type", "UNKNOWN")
-        data_type = col_info.get("data_type", str(col_data.dtype))
+    if total_rows == 0:
+        return {"total_rows": 0, "columns": []}
         
+    for col_name, tracker in trackers.items():
         col_stat = {
-            "name": col,
-            "type": str(col_data.dtype),
-            "data_type": data_type,
-            "semantic_type": semantic_type,
-            "null_count": null_count,
-            "null_percentage": round((null_count / total_rows) * 100, 2) if total_rows > 0 else 0,
+            "name": col_name,
+            "data_type": tracker["data_type"],
+            "semantic_type": tracker["semantic_type"],
+            "null_count": tracker["null_count"],
+            "null_percentage": round((tracker["null_count"] / total_rows) * 100, 2) if total_rows > 0 else 0,
+            "is_numeric": tracker["is_numeric"]
         }
         
-        # Treat as Numeric only if semantic type implies it
-        is_numeric_semantic = semantic_type in ["INTEGER", "DECIMAL"]
-        
-        if is_numeric_semantic and pd.api.types.is_numeric_dtype(col_data):
-            col_stat["is_numeric"] = True
-            col_stat["mean"] = float(col_data.mean()) if not pd.isna(col_data.mean()) else None
-            col_stat["median"] = float(col_data.median()) if not pd.isna(col_data.median()) else None
-            col_stat["min"] = float(col_data.min()) if not pd.isna(col_data.min()) else None
-            col_stat["max"] = float(col_data.max()) if not pd.isna(col_data.max()) else None
-            col_stat["std"] = float(col_data.std()) if not pd.isna(col_data.std()) else None
-        
-        elif semantic_type in ["MULTIPLE_CHOICE", "TAGS"]:
-            col_stat["is_numeric"] = False
-            # Break down comma separated strings
-            all_tags = []
-            for val in col_data.dropna():
-                if isinstance(val, list):
-                    all_tags.extend(val)
-                elif isinstance(val, str):
-                    all_tags.extend([x.strip() for x in val.split(',')])
-            tag_series = pd.Series(all_tags)
-            value_counts = tag_series.value_counts().head(10)
-            col_stat["top_categories"] = [
-                {"name": str(k), "count": int(v)} for k, v in value_counts.items()
-            ]
+        if tracker["is_numeric"]:
+            nums = tracker["numeric_values"]
+            if nums:
+                nums.sort() # sort in place for median
+                col_stat["min"] = float(nums[0])
+                col_stat["max"] = float(nums[-1])
+                col_stat["mean"] = float(sum(nums) / len(nums))
+                
+                # Median
+                mid = len(nums) // 2
+                if len(nums) % 2 == 0:
+                    col_stat["median"] = float((nums[mid - 1] + nums[mid]) / 2.0)
+                else:
+                    col_stat["median"] = float(nums[mid])
+                    
+                # StdDev
+                if len(nums) > 1:
+                    mean_val = col_stat["mean"]
+                    variance = sum((x - mean_val) ** 2 for x in nums) / (len(nums) - 1)
+                    col_stat["std"] = float(math.sqrt(variance))
+                else:
+                    col_stat["std"] = 0.0
+            else:
+                col_stat["min"] = col_stat["max"] = col_stat["mean"] = col_stat["median"] = col_stat["std"] = None
+                
+            # Free memory explicitly
+            tracker["numeric_values"] = []
             
-        elif semantic_type in ["SHORT_TEXT", "LONG_TEXT"]:
-            col_stat["is_numeric"] = False
-            # Text specific stats
-            str_data = col_data.dropna().astype(str)
-            if len(str_data) > 0:
-                col_stat["avg_length"] = float(str_data.str.len().mean())
-                col_stat["avg_words"] = float(str_data.str.split().apply(len).mean())
+        elif tracker["semantic_type"] in ["SHORT_TEXT", "LONG_TEXT"]:
+            v_count = tracker["text_valid_count"]
+            if v_count > 0:
+                col_stat["avg_length"] = float(tracker["text_length_sum"] / v_count)
+                col_stat["avg_words"] = float(tracker["text_words_sum"] / v_count)
+            else:
+                col_stat["avg_length"] = col_stat["avg_words"] = 0.0
                 
         else:
-            # Fallback for CATEGORY, SINGLE_CHOICE, ORDINAL_CHOICE, BOOLEAN, etc.
-            col_stat["is_numeric"] = False
-            value_counts = col_data.value_counts().head(10)
+            # Get top 10 categories
+            top_10 = tracker["value_counts"].most_common(10)
             col_stat["top_categories"] = [
-                {"name": str(k), "count": int(v)} for k, v in value_counts.items()
+                {"name": str(k), "count": int(v)} for k, v in top_10
             ]
             
         stats.append(col_stat)
