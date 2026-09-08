@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Public routes — no login needed
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/explore", "/f"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/f"];
 
 // Routes that start with these prefixes are always public
 const PUBLIC_PREFIXES = [
