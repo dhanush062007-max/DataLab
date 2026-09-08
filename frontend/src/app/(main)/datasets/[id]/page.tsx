@@ -958,7 +958,17 @@ function DatasetWorkspaceContent() {
               <DataCleaning 
                 datasetId={datasetId} 
                 columns={columns} 
-                onCleanSuccess={() => window.location.reload()} 
+                onCleanSuccess={() => {
+                  // Silently refresh the dataset in the background so the new version is loaded
+                  // without forcing a full page reload, allowing the user to see the success message.
+                  supabase.from("datasets").select("*").eq("id", datasetId).single().then(({data}) => {
+                    if (data) {
+                      setDataset(data);
+                      setFilteredCount(null);
+                      setCurrentPage(1);
+                    }
+                  });
+                }} 
               />
             )}
           </div>
