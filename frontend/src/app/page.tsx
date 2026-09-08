@@ -11,6 +11,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [fetchErr, setFetchErr] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     // Check auth state
@@ -151,6 +152,8 @@ export default function LandingPage() {
               <input 
                 type="text" 
                 placeholder="Search datasets..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-background border border-border rounded-full text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full md:w-64 transition-all shadow-sm"
               />
             </div>
@@ -175,7 +178,10 @@ export default function LandingPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {datasets.map((ds, idx) => (
+              {datasets.filter(ds => 
+                ds.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                (ds.description && ds.description.toLowerCase().includes(searchQuery.toLowerCase()))
+              ).map((ds, idx) => (
                 <Link key={ds.id} href={`/explore/${ds.id}`} className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both" style={{ animationDelay: `${idx * 150}ms` }}>
                   {/* Glowing Border Effect */}
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-500 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-500 blur-sm group-hover:duration-200" />
