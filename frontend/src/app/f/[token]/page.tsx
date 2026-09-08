@@ -26,9 +26,19 @@ export default function PublicFormPage() {
         if (error) throw error;
         if (!data) throw new Error("Form not found");
 
-        // Block if Only Me
+        // Block if Only Me (unless owner)
         if (data.visibility === 'only_me') {
-           throw new Error("This form is currently closed to public.");
+           const { data: { session } } = await supabase.auth.getSession();
+           let isOwner = false;
+           if (session?.user) {
+             const { data: ds } = await supabase.from("datasets").select("owner_id").eq("id", data.dataset_id).single();
+             if (ds && ds.owner_id === session.user.id) {
+               isOwner = true;
+             }
+           }
+           if (!isOwner) {
+             throw new Error("This form is currently closed to public.");
+           }
         } 
         
         setSchema(data);
