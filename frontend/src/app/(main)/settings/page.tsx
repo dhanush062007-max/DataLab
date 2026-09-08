@@ -196,11 +196,17 @@ function ProfileSettings({ user, setUser }: { user: any, setUser: any }) {
 
 function AppearanceSettings() {
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const [density, setDensity] = useState<"compact" | "default" | "comfortable">("default");
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as any;
     if (savedTheme) {
       setTheme(savedTheme);
+    }
+    
+    const savedDensity = localStorage.getItem("density") as any;
+    if (savedDensity) {
+      setDensity(savedDensity);
     }
   }, []);
 
@@ -219,6 +225,12 @@ function AppearanceSettings() {
         document.documentElement.classList.remove("dark");
       }
     }
+  };
+
+  const handleDensityChange = (newDensity: "compact" | "default" | "comfortable") => {
+    setDensity(newDensity);
+    localStorage.setItem("density", newDensity);
+    document.documentElement.setAttribute("data-density", newDensity);
   };
 
   return (
@@ -268,12 +280,53 @@ function AppearanceSettings() {
           </div>
         </div>
 
-        <div className="pt-4">
+        <div className="pt-6 mt-4 border-t border-border">
           <label className="block text-sm font-semibold mb-2">UI Density</label>
-          <select className="bg-background border border-border text-sm rounded-md p-2 focus:ring-1 focus:ring-primary outline-none max-w-xs w-full">
-            <option>Comfortable (Default)</option>
-            <option>Compact</option>
-          </select>
+          <p className="text-sm text-muted-foreground mb-4">Adjust the compactness of the interface.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg">
+            <button 
+              onClick={() => handleDensityChange("compact")}
+              className={`flex flex-col items-start gap-2 p-4 border-2 rounded-xl bg-card hover:bg-muted transition-colors text-left ${density === 'compact' ? 'border-primary' : 'border-transparent'}`}
+            >
+              <div className="w-full space-y-1 opacity-70">
+                <div className="h-1.5 w-full bg-foreground rounded-full"></div>
+                <div className="h-1.5 w-full bg-foreground rounded-full"></div>
+                <div className="h-1.5 w-3/4 bg-foreground rounded-full"></div>
+              </div>
+              <div>
+                <div className="font-medium text-sm mt-2">Compact</div>
+                <div className="text-[10px] text-muted-foreground">Dense data views</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => handleDensityChange("default")}
+              className={`flex flex-col items-start gap-2 p-4 border-2 rounded-xl bg-card hover:bg-muted transition-colors text-left ${density === 'default' ? 'border-primary' : 'border-transparent'}`}
+            >
+              <div className="w-full space-y-2 opacity-70">
+                <div className="h-2 w-full bg-foreground rounded-full"></div>
+                <div className="h-2 w-full bg-foreground rounded-full"></div>
+                <div className="h-2 w-3/4 bg-foreground rounded-full"></div>
+              </div>
+              <div>
+                <div className="font-medium text-sm mt-2">Default</div>
+                <div className="text-[10px] text-muted-foreground">Standard spacing</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => handleDensityChange("comfortable")}
+              className={`flex flex-col items-start gap-2 p-4 border-2 rounded-xl bg-card hover:bg-muted transition-colors text-left ${density === 'comfortable' ? 'border-primary' : 'border-transparent'}`}
+            >
+              <div className="w-full space-y-3 opacity-70">
+                <div className="h-2.5 w-full bg-foreground rounded-full"></div>
+                <div className="h-2.5 w-full bg-foreground rounded-full"></div>
+                <div className="h-2.5 w-3/4 bg-foreground rounded-full"></div>
+              </div>
+              <div>
+                <div className="font-medium text-sm mt-2">Comfortable</div>
+                <div className="text-[10px] text-muted-foreground">Max breathing room</div>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

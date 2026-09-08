@@ -29,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{
             __html: `
               try {
+                // Theme Logic
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme === 'dark') {
                   document.documentElement.classList.add('dark');
@@ -40,6 +41,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
+                }
+                
+                // Density Logic
+                const savedDensity = localStorage.getItem('density');
+                if (savedDensity) {
+                  document.documentElement.setAttribute('data-density', savedDensity);
+                } else {
+                  document.documentElement.setAttribute('data-density', 'default');
                 }
               } catch (_) {}
             `,

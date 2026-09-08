@@ -135,4 +135,16 @@
   html {
     @apply font-sans;
   }
+  
+  html[data-density="compact"] {
+    font-size: 14px;
+  }
+  
+  html[data-density="default"] {
+    font-size: 16px;
+  }
+  
+  html[data-density="comfortable"] {
+    font-size: 18px;
+  }
 }
