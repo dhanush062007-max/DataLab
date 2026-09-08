@@ -292,7 +292,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                   <TrendingUp className="w-5 h-5" /> Feature Importance
                 </div>
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                  {Object.entries(result.feature_importances).slice(0, 8).map(([feature, imp]: [string, any]) => (
+                  {Object.entries(result.feature_importances || {}).slice(0, 8).map(([feature, imp]: [string, any]) => (
                     <div key={feature}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="truncate max-w-[150px]" title={feature}>{feature}</span>
@@ -306,7 +306,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                       </div>
                     </div>
                   ))}
-                  {Object.keys(result.feature_importances).length === 0 && (
+                  {Object.keys(result.feature_importances || {}).length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Importances not available for this algorithm.
                     </p>
