@@ -26,7 +26,7 @@ DROP POLICY IF EXISTS "Users can insert own profile." ON profiles;
 -- 1. Anyone can view public datasets
 CREATE POLICY "Public datasets are viewable by everyone."
 ON datasets FOR SELECT
-USING (visibility = 'public');
+USING (status = 'PUBLISHED');
 
 -- 2. Users can view their own datasets regardless of visibility
 CREATE POLICY "Users can view their own datasets."
