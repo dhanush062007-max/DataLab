@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Database, FileType, Columns, Plus, Trash2, GripVertical } from "lucide-react";
+import { ArrowLeft, Database, FileType, Columns, Plus, Trash2, GripVertical, CheckCircle, Copy, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -22,6 +22,7 @@ export default function NewDatasetPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdDatasetId, setCreatedDatasetId] = useState<string | null>(null);
 
   // Form Data
   const [name, setName] = useState("");
@@ -131,9 +132,13 @@ export default function NewDatasetPage() {
 
       if (colsError) throw colsError;
 
-      // 3. Success -> Redirect to datasets
-      router.push("/datasets");
-      router.refresh();
+      // 3. Success -> Show success message for FORM, else go to dataset
+      if (sourceType === "FORM") {
+        setCreatedDatasetId(datasetData.id);
+        setStep(3);
+      } else {
+        router.push("/datasets/" + datasetData.id);
+      }
 
     } catch (err: any) {
       console.error(err);
@@ -158,17 +163,19 @@ export default function NewDatasetPage() {
       </div>
 
       {/* Progress Steps */}
-      <div className="flex items-center mb-8 px-4">
-        <div className={`flex items-center gap-3 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>1</div>
-          <span className="font-semibold text-sm">Details</span>
+      {step < 3 && (
+        <div className="flex items-center mb-8 px-4">
+          <div className={`flex items-center gap-3 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>1</div>
+            <span className="font-semibold text-sm">Details</span>
+          </div>
+          <div className={`flex-1 h-1 mx-4 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
+          <div className={`flex items-center gap-3 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>2</div>
+            <span className="font-semibold text-sm">Schema</span>
+          </div>
         </div>
-        <div className={`flex-1 h-1 mx-4 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
-        <div className={`flex items-center gap-3 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>2</div>
-          <span className="font-semibold text-sm">Schema</span>
-        </div>
-      </div>
+      )}
 
       <div className="bg-card border border-border rounded-xl shadow-sm p-6 sm:p-8">
         
@@ -338,6 +345,47 @@ export default function NewDatasetPage() {
               <Button onClick={handleCreateDataset} disabled={loading} className="px-8">
                 {loading ? "Creating..." : "Create Dataset"}
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Success (Form Only) */}
+        {step === 3 && (
+          <div className="space-y-6 animate-in zoom-in-95 duration-500 text-center py-8">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-50 shadow-sm">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight">Dataset Created Successfully!</h2>
+            <p className="text-muted-foreground max-w-md mx-auto text-lg">
+              Your dataset is ready. You can now share the public form link below to start collecting data from your users.
+            </p>
+            
+            <div className="bg-muted/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-border mt-8 max-w-lg mx-auto shadow-inner">
+              <div className="flex items-center gap-3 overflow-hidden text-left pr-0 sm:pr-4">
+                <div className="p-2 bg-background rounded shadow-sm border border-border hidden sm:block">
+                  <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                </div>
+                <span className="text-sm truncate font-medium font-mono text-foreground">{typeof window !== 'undefined' ? window.location.origin : ''}/f/{createdDatasetId}</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="shrink-0 bg-background hover:bg-muted w-full sm:w-auto"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/f/${createdDatasetId}`);
+                  alert("Link copied!");
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" /> Copy Link
+              </Button>
+            </div>
+
+            <div className="pt-10">
+              <Link href={`/datasets/${createdDatasetId}`}>
+                <Button size="lg" className="w-full sm:w-auto px-10 h-14 rounded-full text-base shadow-[0_0_40px_-10px_rgba(var(--primary),0.5)] hover:shadow-[0_0_60px_-10px_rgba(var(--primary),0.7)] hover:scale-105 transition-all duration-300">
+                  Go to Dataset Workspace
+                </Button>
+              </Link>
             </div>
           </div>
         )}

@@ -29,6 +29,8 @@ function DatasetWorkspaceContent() {
   const [records, setRecords] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Sync tab state with URL changes
   useEffect(() => {
@@ -56,6 +58,10 @@ function DatasetWorkspaceContent() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+
       // Fetch Dataset
       const { data: dData, error: dError } = await supabase
         .from("datasets")
@@ -68,7 +74,16 @@ function DatasetWorkspaceContent() {
         router.push("/datasets");
         return;
       }
+
+      const owner = session?.user?.id === dData.owner_id;
+      if (!owner) {
+        // Redirect visitors to the dedicated public explore page
+        router.push(`/explore/${datasetId}`);
+        return;
+      }
+
       setDataset(dData);
+      setIsOwner(true);
 
       // Fetch Columns
       const { data: cData } = await supabase
@@ -293,6 +308,31 @@ function DatasetWorkspaceContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value;
+    const { error } = await supabase
+      .from("datasets")
+      .update({ status: newStatus })
+      .eq("id", datasetId);
+      
+    if (!error) {
+      setDataset({ ...dataset, status: newStatus });
+    } else {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "READY":
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800";
+      case "PUBLISHED":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800";
+      default:
+        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800";
+    }
+  };
+
   if (loading) return <div className="p-12 text-center text-muted-foreground">Loading workspace...</div>;
 
   return (
@@ -308,27 +348,33 @@ function DatasetWorkspaceContent() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight">{dataset.name}</h1>
           </div>
-          <div className="flex gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 self-center">
-              {dataset.status}
-            </span>
+          <div className="flex gap-2 items-center">
+            {isOwner ? (
+              <select
+                value={dataset.status || "NOT READY"}
+                onChange={handleStatusChange}
+                className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest outline-none cursor-pointer border appearance-none text-center ${getStatusColor(dataset.status)}`}
+              >
+                <option value="NOT READY">NOT READY</option>
+                <option value="READY">READY</option>
+                <option value="PUBLISHED">PUBLISHED</option>
+              </select>
+            ) : (
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest border text-center ${getStatusColor(dataset.status)}`}>
+                {dataset.status}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-border">
+      <div className="flex items-center gap-6 border-b border-border overflow-x-auto hide-scrollbar whitespace-nowrap">
         <button 
           onClick={() => setActiveTab("OVERVIEW")}
           className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === "OVERVIEW" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
           Overview
-        </button>
-        <button 
-          onClick={() => setActiveTab("EDA")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "EDA" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <Compass className="w-4 h-4" /> EDA
         </button>
         <button 
           onClick={() => setActiveTab("DATA")}
@@ -337,28 +383,22 @@ function DatasetWorkspaceContent() {
           Data
         </button>
         <button 
-          onClick={() => setActiveTab("CLEANING")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "CLEANING" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <Wand2 className="w-4 h-4" /> Cleaning
-        </button>
-        <button 
           onClick={() => setActiveTab("COLLECTION")}
           className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === "COLLECTION" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
           Collection Form
         </button>
         <button 
-          onClick={() => setActiveTab("ML")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "ML" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setActiveTab("CLEANING")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "CLEANING" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <BrainCircuit className="w-4 h-4" /> Machine Learning
+          <Wand2 className="w-4 h-4" /> Cleaning
         </button>
         <button 
-          onClick={() => setActiveTab("EXPERIMENTS")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "EXPERIMENTS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setActiveTab("EDA")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "EDA" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <FlaskConical className="w-4 h-4" /> Experiments
+          <Compass className="w-4 h-4" /> EDA
         </button>
         <button 
           onClick={() => setActiveTab("VISUALIZATION")}
@@ -371,6 +411,18 @@ function DatasetWorkspaceContent() {
           className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "STATS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
           <Calculator className="w-4 h-4" /> Statistical Testing
+        </button>
+        <button 
+          onClick={() => setActiveTab("ML")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "ML" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <BrainCircuit className="w-4 h-4" /> Machine Learning
+        </button>
+        <button 
+          onClick={() => setActiveTab("EXPERIMENTS")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "EXPERIMENTS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <FlaskConical className="w-4 h-4" /> Experiments
         </button>
         <button 
           onClick={() => setActiveTab("REPORT")}
@@ -468,10 +520,12 @@ function DatasetWorkspaceContent() {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{records.length} of {dataset.row_count || 0} visible</span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button onClick={() => setShowAddRow(!showAddRow)} size="sm" className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Row
-                </Button>
+                {isOwner && (
+                  <Button onClick={() => setShowAddRow(!showAddRow)} size="sm" className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Row
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -592,9 +646,11 @@ function DatasetWorkspaceContent() {
                           </td>
                         ))}
                         <td className="px-4 py-2 text-right">
-                          <button className="text-muted-foreground hover:text-foreground">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
+                          {isOwner && (
+                            <button className="text-muted-foreground hover:text-foreground">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -717,19 +773,42 @@ function DatasetWorkspaceContent() {
 
         {/* TAB: CLEANING */}
         {activeTab === "CLEANING" && (
-          <div className="overflow-y-auto pr-2 pb-4">
-            <DataCleaning 
-              datasetId={datasetId} 
-              columns={columns} 
-              onCleanSuccess={() => window.location.reload()} 
-            />
+          <div className="overflow-y-auto pr-2 pb-4 h-full">
+            {!isOwner ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-card border border-border rounded-xl">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-6">
+                  <Wand2 className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">Read-Only View</h2>
+                <p className="text-muted-foreground mb-6 max-w-md">Data cleaning operations are restricted to the dataset owner to prevent unauthorized modifications.</p>
+              </div>
+            ) : (
+              <DataCleaning 
+                datasetId={datasetId} 
+                columns={columns} 
+                onCleanSuccess={() => window.location.reload()} 
+              />
+            )}
           </div>
         )}
 
         {/* TAB: ML */}
         {activeTab === "ML" && (
           <div className="overflow-y-auto pr-2 pb-4 h-full">
-            <ModelTrainer datasetId={datasetId} columns={columns} />
+            {!session ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-card border border-border rounded-xl shadow-sm">
+                <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
+                  <BrainCircuit className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">Login Required for ML Training</h2>
+                <p className="text-muted-foreground mb-6 max-w-md">Training machine learning models requires significant computational resources. Please sign in or create a free account to train custom models on this public dataset.</p>
+                <Link href="/login">
+                  <Button size="lg" className="rounded-full px-8">Sign in to DataLab</Button>
+                </Link>
+              </div>
+            ) : (
+              <ModelTrainer datasetId={datasetId} columns={columns} />
+            )}
           </div>
         )}
 
