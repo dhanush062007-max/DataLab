@@ -44,7 +44,7 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
     current_offset = 0
     
     while True:
-        query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).range(current_offset, current_offset + chunk_size - 1)
+        query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).order("id").range(current_offset, current_offset + chunk_size - 1)
         if active_version_id:
             query = query.eq("version_id", active_version_id)
         else:
