@@ -17,15 +17,30 @@ async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client
     d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
     active_version_id = d_res.data.get("active_version_id")
     
-    # Fetch records matching active_version_id
-    query = supabase.table("dataset_records").select("id, data, version_id").eq("dataset_id", dataset_id)
-    # if active_version_id:
-    #     query = query.eq("version_id", active_version_id)
-    # else:
-    #     query = query.is_("version_id", "null")
+    # Fetch records matching active_version_id in batches to avoid 1000 row limit
+    records = []
+    chunk_size = 10000
+    current_offset = 0
+    
+    while True:
+        query = supabase.table("dataset_records").select("id, data, version_id").eq("dataset_id", dataset_id).range(current_offset, current_offset + chunk_size - 1)
+        # if active_version_id:
+        #     query = query.eq("version_id", active_version_id)
+        # else:
+        #     query = query.is_("version_id", "null")
+            
+        response = query.execute()
+        fetched = response.data
         
-    response = query.execute()
-    records = response.data
+        if not fetched:
+            break
+            
+        records.extend(fetched)
+        
+        if len(fetched) < chunk_size:
+            break
+            
+        current_offset += chunk_size
     
     if not records:
         raise HTTPException(status_code=400, detail="Dataset is empty.")
@@ -44,7 +59,11 @@ async def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client
             df_clean = df.copy()
             df_clean[target_col] = df_clean[target_col].fillna(df_clean[target_col].mean())
         elif request.operation == "DROP_DUPLICATES":
-            df_clean = df.drop_duplicates()
+            subset_cols = request.parameters.get("columns")
+            if subset_cols:
+                df_clean = df.drop_duplicates(subset=subset_cols)
+            else:
+                df_clean = df.drop_duplicates()
         else:
             raise ValueError(f"Unknown operation: {request.operation}")
     except Exception as e:

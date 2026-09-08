@@ -25,6 +25,10 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
         return;
       }
       payload.parameters = { column: targetColumn };
+    } else if (operation === "DROP_DUPLICATES") {
+      if (targetColumn) {
+        payload.parameters = { columns: [targetColumn] };
+      }
     }
 
     try {
@@ -95,7 +99,7 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
               <div className="grid gap-3">
                 
                 <div 
-                  onClick={() => setOperation("DROP_NULLS")}
+                  onClick={() => { setOperation("DROP_NULLS"); setTargetColumn(""); }}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${operation === "DROP_NULLS" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
                 >
                   <div className="font-bold text-sm">Drop Missing Values</div>
@@ -103,7 +107,7 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
                 </div>
                 
                 <div 
-                  onClick={() => setOperation("FILL_MEAN")}
+                  onClick={() => { setOperation("FILL_MEAN"); setTargetColumn(""); }}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${operation === "FILL_MEAN" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
                 >
                   <div className="font-bold text-sm">Fill with Mean</div>
@@ -111,7 +115,7 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
                 </div>
 
                 <div 
-                  onClick={() => setOperation("DROP_DUPLICATES")}
+                  onClick={() => { setOperation("DROP_DUPLICATES"); setTargetColumn(""); }}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${operation === "DROP_DUPLICATES" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
                 >
                   <div className="font-bold text-sm">Remove Duplicates</div>
@@ -132,9 +136,25 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
             )}
 
             {operation === "DROP_DUPLICATES" && (
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                This operation will identify and remove any rows where every single column matches exactly with another row, keeping only the first occurrence.
-              </p>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This operation will identify and remove any rows where every single column matches exactly with another row, keeping only the first occurrence. 
+                  Alternatively, select a specific column below to identify duplicates based ONLY on that column.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Target Column (Optional)</label>
+                  <select 
+                    value={targetColumn}
+                    onChange={(e) => setTargetColumn(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  >
+                    <option value="">-- All Columns (Exact Row Match) --</option>
+                    {columns.map(c => (
+                      <option key={c.id} value={c.column_name}>{c.display_name || c.column_name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             )}
 
             {operation === "FILL_MEAN" && (
