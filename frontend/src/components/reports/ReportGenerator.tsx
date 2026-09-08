@@ -320,7 +320,7 @@ export function ReportGenerator({ datasetId, datasetName }: ReportGeneratorProps
                           </div>
                           <div className="bg-gray-50 p-2 rounded min-w-0">
                             <div className="text-gray-500 text-xs truncate">RMSE</div>
-                            <div className="font-bold text-gray-900 truncate">{model.metrics.rmse?.toFixed(3)}</div>
+                            <div className="font-bold text-gray-900 truncate">{(model.metrics.rmse ?? Math.sqrt(model.metrics.mse))?.toFixed(3)}</div>
                           </div>
                         </>
                       )}

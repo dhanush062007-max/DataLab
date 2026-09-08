@@ -174,7 +174,9 @@ def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supa
                 metrics["accuracy"] = float(accuracy_score(test_y_vals, y_pred))
                 metrics["f1_score"] = float(f1_score(test_y_vals, y_pred, average='weighted', zero_division=0))
             else:
-                metrics["mse"] = float(mean_squared_error(test_y_vals, y_pred))
+                mse_val = float(mean_squared_error(test_y_vals, y_pred))
+                metrics["mse"] = mse_val
+                metrics["rmse"] = float(math.sqrt(mse_val))
                 metrics["r2"] = float(r2_score(test_y_vals, y_pred))
                 
         # Clean metrics
