@@ -85,7 +85,8 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Training failed");
+      if (res.status === 429) throw new Error("Model Limit exceeded. Please wait a minute before training again.");
+      if (!res.ok) throw new Error(data.detail || data.error || "Training failed");
 
       // Save to Supabase
       const payload = { 

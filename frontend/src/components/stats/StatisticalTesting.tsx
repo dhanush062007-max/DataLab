@@ -78,7 +78,8 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Test failed");
+      if (res.status === 429) throw new Error("Test Limit exceeded. Please wait a minute before running more tests.");
+      if (!res.ok) throw new Error(data.detail || data.error || "Test failed");
 
       setResult(data);
       fetchHistory(); // Refresh history
