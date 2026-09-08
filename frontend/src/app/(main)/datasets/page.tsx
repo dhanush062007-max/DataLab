@@ -60,9 +60,9 @@ function DatasetsContent() {
     document.body.removeChild(link);
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string, name: string) => {
     e.preventDefault();
-    if (confirm("Are you sure you want to delete this dataset? This cannot be undone.")) {
+    if (confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
       const { error } = await supabase.from("datasets").delete().eq("id", id);
       if (!error) {
         setDatasets(datasets.filter(ds => ds.id !== id));
@@ -188,7 +188,7 @@ function DatasetsContent() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDelete(dataset.id, dataset.name)}
+                            onClick={(e) => handleDelete(e, dataset.id, dataset.name)}
                             className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8"
                             title="Delete Dataset"
                           >
