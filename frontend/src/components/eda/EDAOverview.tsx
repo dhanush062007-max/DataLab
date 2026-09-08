@@ -10,9 +10,12 @@ type EDAStats = {
 export function EDAOverview({ datasetId }: { datasetId: string }) {
   const [stats, setStats] = useState<EDAStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const slowTimer = setTimeout(() => setLoadingSlow(true), 5000);
+
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.auth.getSession().then(({ data: authData }) => {
         const token = authData.session?.access_token;
@@ -30,14 +33,18 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
       .then(data => {
         setStats(data);
         setLoading(false);
+        clearTimeout(slowTimer);
       })
       .catch(err => {
         console.error(err);
         setError("The FastAPI backend is not running or encountered an error processing this dataset.");
         setLoading(false);
+        clearTimeout(slowTimer);
       });
     });
     });
+
+    return () => clearTimeout(slowTimer);
   }, [datasetId]);
 
   if (loading) {
@@ -45,6 +52,11 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
       <div className="h-64 flex flex-col items-center justify-center text-muted-foreground bg-card border border-border rounded-xl">
         <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
         <p>Crunching numbers with Intelligent Type Detection...</p>
+        {loadingSlow && (
+          <p className="mt-4 text-amber-600 dark:text-amber-400 max-w-sm text-center animate-pulse font-medium text-sm">
+            Processing a large dataset. Our backend is churning through thousands of rows out-of-core. This might take a few seconds...
+          </p>
+        )}
       </div>
     );
   }

@@ -15,6 +15,7 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
   const [featureColumns, setFeatureColumns] = useState<string[]>([]);
   const [algorithm, setAlgorithm] = useState<string>("RANDOM_FOREST_REGRESSOR");
   const [training, setTraining] = useState(false);
+  const [trainingSlow, setTrainingSlow] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,8 +64,13 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
     }
 
     setTraining(true);
+    setTrainingSlow(false);
     setError(null);
     setResult(null);
+
+    const slowTimer = setTimeout(() => {
+      setTrainingSlow(true);
+    }, 5000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -111,7 +117,9 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
     } catch (err: any) {
       setError(err.message);
     } finally {
+      clearTimeout(slowTimer);
       setTraining(false);
+      setTrainingSlow(false);
     }
   };
 
@@ -247,9 +255,14 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
               <BrainCircuit className="w-10 h-10 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
             </div>
             <h3 className="text-xl font-bold mb-2 animate-pulse">Training in Progress...</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Applying ColumnTransformers, generating TF-IDF sparse matrices, and optimizing hyperparameters...
             </p>
+            {trainingSlow && (
+              <p className="text-amber-600 dark:text-amber-400 max-w-sm text-center animate-pulse font-medium text-sm p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                Processing a large dataset. Our backend is performing out-of-core learning in chunks. This might take a few seconds...
+              </p>
+            )}
           </div>
         ) : (
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">

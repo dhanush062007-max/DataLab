@@ -23,6 +23,7 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
   const [aggregation, setAggregation] = useState<string>("NONE");
   
   const [running, setRunning] = useState(false);
+  const [runningSlow, setRunningSlow] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +44,13 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
     }
 
     setRunning(true);
+    setRunningSlow(false);
     setError(null);
     setResult(null);
+
+    const slowTimer = setTimeout(() => {
+      setRunningSlow(true);
+    }, 5000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -71,7 +77,9 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
     } catch (err: any) {
       setError(err.message);
     } finally {
+      clearTimeout(slowTimer);
       setRunning(false);
+      setRunningSlow(false);
     }
   };
 
@@ -201,6 +209,16 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
               <div className="p-3 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 text-sm rounded-md border border-red-200 dark:border-red-900/50 flex items-start gap-2 mt-4">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {runningSlow && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-sm rounded-md border border-amber-200 dark:border-amber-900/50 flex items-start gap-2 mt-4 animate-pulse">
+                <div className="w-4 h-4 mt-0.5 shrink-0 animate-spin border-2 border-amber-600 dark:border-amber-400 border-t-transparent rounded-full" />
+                <div>
+                  <span className="font-bold block">Processing out-of-core...</span>
+                  <span className="opacity-90">Streaming and aggregating thousands of rows. This might take a few seconds...</span>
+                </div>
               </div>
             )}
           </div>

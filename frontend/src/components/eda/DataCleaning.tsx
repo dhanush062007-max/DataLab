@@ -6,13 +6,19 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
   const [operation, setOperation] = useState("DROP_NULLS");
   const [targetColumn, setTargetColumn] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleClean = async () => {
     setLoading(true);
+    setLoadingSlow(false);
     setError(null);
     setResult(null);
+
+    const slowTimer = setTimeout(() => {
+      setLoadingSlow(true);
+    }, 5000);
 
     const payload: any = {
       operation
@@ -22,6 +28,7 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
       if (!targetColumn) {
         setError("Please select a target column to fill missing values.");
         setLoading(false);
+        clearTimeout(slowTimer);
         return;
       }
       payload.parameters = { column: targetColumn };
@@ -57,7 +64,9 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
     } catch (err: any) {
       setError(err.message);
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
+      setLoadingSlow(false);
     }
   };
 
@@ -88,6 +97,16 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
             <div>
               <div className="font-bold">{result.message}</div>
               {result.row_count && <div className="mt-1 opacity-90">Dataset now contains {result.row_count} rows.</div>}
+            </div>
+          </div>
+        )}
+
+        {loadingSlow && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 rounded-lg text-sm font-medium border border-amber-200 dark:border-amber-900/50 flex items-start gap-3 animate-pulse">
+            <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+            <div>
+              <div className="font-bold">Processing a large dataset</div>
+              <div className="mt-1 opacity-90">Our backend is churning through thousands of rows out-of-core. This might take a few seconds...</div>
             </div>
           </div>
         )}
