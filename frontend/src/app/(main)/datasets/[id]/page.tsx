@@ -620,7 +620,7 @@ function DatasetWorkspaceContent() {
                   Data Explorer
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                  {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, filteredCount ?? dataset?.row_count || 0)} of ${filteredCount ?? dataset?.row_count || 0}` : `0 of ${filteredCount ?? dataset?.row_count || 0}`}
+                  {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, (filteredCount ?? dataset?.row_count) || 0)} of ${(filteredCount ?? dataset?.row_count) || 0}` : `0 of ${(filteredCount ?? dataset?.row_count) || 0}`}
                 </span>
               </div>
               <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
