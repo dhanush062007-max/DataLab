@@ -228,12 +228,12 @@ function ExploreDatasetContent() {
                 )}
                 <Button 
                   variant="outline" 
-                  className="rounded-full px-6 flex items-center gap-2 bg-background border-border"
+                  className="rounded-full px-6 flex items-center gap-2 bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 dark:bg-indigo-900/30 dark:border-indigo-800/50 dark:text-indigo-300 dark:hover:bg-indigo-900/50 shadow-sm transition-all"
                   onClick={handleDownloadCSV}
                   disabled={downloadingCsv}
                 >
                   {downloadingCsv ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {downloadingCsv ? "Preparing Download..." : "Download CSV"}
+                  {downloadingCsv ? "Preparing Download..." : "Download Dataset (CSV)"}
                 </Button>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
