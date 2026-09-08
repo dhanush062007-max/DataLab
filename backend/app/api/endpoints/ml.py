@@ -38,13 +38,12 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
     d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
     active_version_id = d_res.data.get("active_version_id")
     
-    # 2. Fetch records matching active_version_id, capped at 5000 rows for memory safety during ML
+    # 2. Fetch records matching active_version_id in batches to bypass PostgREST limits
     records = []
-    chunk_size = 1000
+    chunk_size = 10000
     current_offset = 0
-    max_records = 5000
     
-    while len(records) < max_records:
+    while True:
         query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).range(current_offset, current_offset + chunk_size - 1)
         if active_version_id:
             query = query.eq("version_id", active_version_id)
@@ -58,10 +57,11 @@ async def train_model(request: Request, dataset_id: str, train_req: TrainRequest
             break
             
         records.extend(fetched)
-        current_offset += chunk_size
         
-    # Cap to exact max_records
-    records = records[:max_records]
+        if len(fetched) < chunk_size:
+            break
+            
+        current_offset += chunk_size
     
     if not records:
         raise HTTPException(status_code=400, detail="Dataset is empty.")
