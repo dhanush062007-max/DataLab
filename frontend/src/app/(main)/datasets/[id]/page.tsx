@@ -170,39 +170,50 @@ function DatasetWorkspaceContent() {
           
           setUploadProgress(60);
 
-          // Prepare payload for Supabase
-          // For massive CSVs, we should batch insert. For now we will insert up to a reasonable limit.
-          const recordsToInsert = parsedData.slice(0, 5000).map((row: any) => {
-            // Clean row based on schema
-            const cleanRow: Record<string, any> = {};
-            columns.forEach(col => {
-              let val = row[col.column_name];
-              if (val !== undefined && val !== "") {
-                if (col.data_type === "INTEGER" || col.data_type === "DECIMAL") val = Number(val);
-                if (col.data_type === "BOOLEAN") val = String(val).toLowerCase() === "true" || val === "1";
-                cleanRow[col.column_name] = val;
-              } else {
-                cleanRow[col.column_name] = null;
-              }
+          setUploadProgress(50);
+
+          // We will batch insert to handle massive CSVs without timing out
+          const BATCH_SIZE = 5000;
+          let totalInserted = 0;
+
+          for (let i = 0; i < parsedData.length; i += BATCH_SIZE) {
+            const chunk = parsedData.slice(i, i + BATCH_SIZE);
+            const recordsToInsert = chunk.map((row: any) => {
+              // Clean row based on schema
+              const cleanRow: Record<string, any> = {};
+              columns.forEach(col => {
+                let val = row[col.column_name];
+                if (val !== undefined && val !== "") {
+                  if (col.data_type === "INTEGER" || col.data_type === "DECIMAL") val = Number(val);
+                  if (col.data_type === "BOOLEAN") val = String(val).toLowerCase() === "true" || val === "1";
+                  cleanRow[col.column_name] = val;
+                } else {
+                  cleanRow[col.column_name] = null;
+                }
+              });
+              return {
+                dataset_id: datasetId,
+                data: cleanRow
+              };
             });
-            return {
-              dataset_id: datasetId,
-              data: cleanRow
-            };
-          });
 
-          setUploadProgress(80);
+            const { error } = await supabase
+              .from("dataset_records")
+              .insert(recordsToInsert);
 
-          const { error } = await supabase
-            .from("dataset_records")
-            .insert(recordsToInsert);
+            if (error) throw error;
 
-          if (error) throw error;
+            totalInserted += recordsToInsert.length;
+            
+            // Calculate progress between 50% and 90%
+            const progress = 50 + Math.floor((totalInserted / parsedData.length) * 40);
+            setUploadProgress(progress);
+          }
 
           // Update Dataset count
           await supabase
             .from("datasets")
-            .update({ row_count: (dataset.row_count || 0) + recordsToInsert.length, status: "READY" })
+            .update({ row_count: (dataset.row_count || 0) + totalInserted, status: "READY" })
             .eq("id", datasetId);
 
           setUploadProgress(100);
