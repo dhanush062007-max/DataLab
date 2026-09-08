@@ -3,9 +3,10 @@
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Database, Grid, BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, Compass, ArrowRight, User } from "lucide-react";
+import { Database, Grid, BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, Compass, ArrowRight, User, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Papa from "papaparse";
 import dynamic from "next/dynamic";
 
 const EDAOverview = dynamic(() => import("@/components/eda/EDAOverview").then(m => m.EDAOverview), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
@@ -29,6 +30,56 @@ function ExploreDatasetContent() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [publicForm, setPublicForm] = useState<any>(null);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
+
+  const handleDownloadCSV = async () => {
+    if (!dataset) return;
+    setDownloadingCsv(true);
+    try {
+      const allData: any[] = [];
+      const chunkSize = 5000;
+      let currentOffset = 0;
+
+      while (true) {
+        let query = supabase
+          .from("dataset_records")
+          .select("data")
+          .eq("dataset_id", datasetId)
+          .range(currentOffset, currentOffset + chunkSize - 1);
+        
+        if (dataset.active_version_id) {
+          query = query.eq("version_id", dataset.active_version_id);
+        } else {
+          query = query.is("version_id", null);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        data.forEach(r => allData.push(r.data));
+        
+        if (data.length < chunkSize) break;
+        currentOffset += chunkSize;
+      }
+
+      if (allData.length > 0) {
+        const csv = Papa.unparse(allData);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `${dataset.name.replace(/\s+/g, '_')}_export.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (e) {
+      console.error("Error downloading CSV:", e);
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
 
   // Sync tab state with URL changes
   useEffect(() => {
@@ -166,16 +217,25 @@ function ExploreDatasetContent() {
                 <span className="text-foreground">{dataset.name}</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">{dataset.name}</h1>
-              {publicForm && (
-                <div className="mb-3">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                {publicForm && (
                   <Link href={`/f/${publicForm.token}`} target="_blank">
                     <Button variant="default" className="rounded-full px-6 flex items-center gap-2 shadow-sm hover:shadow-md transition-all">
                       <FlaskConical className="w-4 h-4" />
                       Submit Data to this Dataset
                     </Button>
                   </Link>
-                </div>
-              )}
+                )}
+                <Button 
+                  variant="outline" 
+                  className="rounded-full px-6 flex items-center gap-2 bg-background border-border"
+                  onClick={handleDownloadCSV}
+                  disabled={downloadingCsv}
+                >
+                  {downloadingCsv ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {downloadingCsv ? "Preparing Download..." : "Download CSV"}
+                </Button>
+              </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4" /> 
                 Published by {dataset.profiles?.full_name || "Anonymous"}

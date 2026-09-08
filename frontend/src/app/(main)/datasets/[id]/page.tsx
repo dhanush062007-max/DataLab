@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download } from "lucide-react";
+import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Papa from "papaparse";
 import Link from "next/link";
@@ -69,6 +69,56 @@ function DatasetWorkspaceContent() {
   const [form, setForm] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
+
+  const handleDownloadCSV = async () => {
+    if (!dataset) return;
+    setDownloadingCsv(true);
+    try {
+      const allData: any[] = [];
+      const chunkSize = 5000;
+      let currentOffset = 0;
+
+      while (true) {
+        let query = supabase
+          .from("dataset_records")
+          .select("data")
+          .eq("dataset_id", datasetId)
+          .range(currentOffset, currentOffset + chunkSize - 1);
+        
+        if (dataset.active_version_id) {
+          query = query.eq("version_id", dataset.active_version_id);
+        } else {
+          query = query.is("version_id", null);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        data.forEach(r => allData.push(r.data));
+        
+        if (data.length < chunkSize) break;
+        currentOffset += chunkSize;
+      }
+
+      if (allData.length > 0) {
+        const csv = Papa.unparse(allData);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `${dataset.name.replace(/\s+/g, '_')}_export.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (e) {
+      console.error("Error downloading CSV:", e);
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -403,43 +453,7 @@ function DatasetWorkspaceContent() {
     }
   };
 
-  const handleExportCSV = async () => {
-    try {
-      let rQuery = supabase
-        .from("dataset_records")
-        .select("data")
-        .eq("dataset_id", datasetId);
-        
-      if (dataset.active_version_id) {
-        rQuery = rQuery.eq("version_id", dataset.active_version_id);
-      } else {
-        rQuery = rQuery.is("version_id", null);
-      }
-      
-      const { data, error } = await rQuery;
-      
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        alert("No data available to export.");
-        return;
-      }
 
-      const flatData = data.map((row: any) => row.data);
-      const csv = Papa.unparse(flatData);
-      
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `${dataset.name.replace(/\s+/g, "_").toLowerCase()}_export.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err: any) {
-      console.error("Export error:", err);
-      alert(err.message || "Failed to export dataset.");
-    }
-  };
 
   if (loading) return <div className="p-12 text-center text-muted-foreground">Loading workspace...</div>;
 
@@ -678,9 +692,9 @@ function DatasetWorkspaceContent() {
                     Next
                   </Button>
                 </div>
-                <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Export CSV
+                <Button onClick={handleDownloadCSV} disabled={downloadingCsv} variant="outline" size="sm" className="flex items-center gap-2">
+                  {downloadingCsv ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {downloadingCsv ? "Exporting..." : "Export CSV"}
                 </Button>
                 {isOwner && (
                   <Button onClick={() => setShowAddRow(!showAddRow)} size="sm" className="flex items-center gap-2">
