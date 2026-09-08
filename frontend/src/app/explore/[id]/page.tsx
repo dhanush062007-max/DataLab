@@ -165,11 +165,11 @@ function ExploreDatasetContent() {
               </div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">{dataset.name}</h1>
               {publicForm && (
-                <div className="mb-3 mt-3 w-full sm:w-auto">
-                  <Link href={`/f/${publicForm.token}`} target="_blank" className="w-full sm:inline-block block">
-                    <Button variant="default" className="w-full sm:w-auto rounded-full px-6 flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all">
-                      <FlaskConical className="w-4 h-4 shrink-0" />
-                      <span className="truncate">Submit Data</span>
+                <div className="mb-3">
+                  <Link href={`/f/${publicForm.token}`} target="_blank">
+                    <Button variant="default" className="rounded-full px-6 flex items-center gap-2 shadow-sm hover:shadow-md transition-all">
+                      <FlaskConical className="w-4 h-4" />
+                      Submit Data to this Dataset
                     </Button>
                   </Link>
                 </div>
