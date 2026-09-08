@@ -776,39 +776,39 @@ function DatasetWorkspaceContent() {
 
                   <div className="bg-card border border-border rounded-xl shadow-sm p-6">
                     <h2 className="text-lg font-bold mb-4">Form Settings</h2>
-                    <div className="flex items-center justify-between py-4 border-b border-border">
-                      <div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b border-border">
+                      <div className="min-w-0">
                         <div className="font-medium">Form Status</div>
                         <div className="text-sm text-muted-foreground">Turn off to prevent new submissions.</div>
                       </div>
-                      <Button onClick={toggleFormStatus} variant={form.is_active ? "destructive" : "default"} className="w-32">
+                      <Button onClick={toggleFormStatus} variant={form.is_active ? "destructive" : "default"} className="w-full sm:w-32 shrink-0">
                         {form.is_active ? <><PauseCircle className="w-4 h-4 mr-2"/> Deactivate</> : <><PlayCircle className="w-4 h-4 mr-2"/> Activate</>}
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between py-4 border-b border-border">
-                      <div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b border-border">
+                      <div className="min-w-0">
                         <div className="font-medium">Visibility</div>
                         <div className="text-sm text-muted-foreground">Control who can find and access this form.</div>
                       </div>
                       <select 
                         value={form.visibility || 'private'}
                         onChange={(e) => updateVisibility(e.target.value)}
-                        className="h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
+                        className="w-full sm:w-auto h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary shrink-0"
                       >
                         <option value="public">Public (Shown on Explore Page)</option>
                         <option value="private">Private (Link Only)</option>
                         <option value="only_me">Only Me (Closed)</option>
                       </select>
                     </div>
-                    <div className="flex items-center justify-between py-4">
-                      <div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
+                      <div className="min-w-0">
                         <div className="font-medium">Rate Limiting (Browser-based)</div>
                         <div className="text-sm text-muted-foreground">Max submissions per minute from the same device.</div>
                       </div>
                       <select 
                         value={form.rate_limit_settings?.max_per_minute ?? 5}
                         onChange={(e) => updateRateLimit(Number(e.target.value))}
-                        className="h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
+                        className="w-full sm:w-auto h-9 px-3 rounded-md border border-input bg-background text-sm outline-none focus:border-primary shrink-0"
                       >
                         <option value={0}>Only once (Ever)</option>
                         <option value={1}>1 per minute</option>
