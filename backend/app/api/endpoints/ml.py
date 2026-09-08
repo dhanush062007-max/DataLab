@@ -63,7 +63,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
         transformers = []
         feature_names_mapping = {}
         
-        for col in request.feature_columns:
+        for i, col in enumerate(request.feature_columns):
             col_def = col_defs.get(col, {})
             semantic_type = col_def.get("semantic_type", "UNKNOWN")
             encoding = col_def.get("encoding_type", "NONE")
@@ -71,7 +71,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
             if semantic_type in ["INTEGER", "DECIMAL"] or pd.api.types.is_numeric_dtype(X[col]):
                 X[col] = pd.to_numeric(X[col], errors='coerce')
                 transformers.append((
-                    f"num_{col}", 
+                    f"num_{i}", 
                     Pipeline([
                         ('imputer', SimpleImputer(strategy='mean')),
                         ('scaler', StandardScaler())
@@ -81,7 +81,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
             elif semantic_type in ["CATEGORY", "SINGLE_CHOICE"]:
                 X[col] = X[col].astype(str)
                 transformers.append((
-                    f"cat_{col}", 
+                    f"cat_{i}", 
                     Pipeline([
                         ('imputer', SimpleImputer(strategy='constant', fill_value='Missing')),
                         ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
@@ -91,7 +91,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
             elif semantic_type in ["SHORT_TEXT", "LONG_TEXT"]:
                 X[col] = X[col].fillna("").astype(str)
                 transformers.append((
-                    f"txt_{col}", 
+                    f"txt_{i}", 
                     TfidfVectorizer(max_features=1000, stop_words='english'), 
                     col
                 ))
@@ -99,7 +99,7 @@ async def train_model(dataset_id: str, request: TrainRequest, supabase: Client =
                 # Default fallback
                 X[col] = X[col].astype(str)
                 transformers.append((
-                    f"cat_default_{col}", 
+                    f"cat_default_{i}", 
                     Pipeline([
                         ('imputer', SimpleImputer(strategy='constant', fill_value='Missing')),
                         ('encoder', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1))
