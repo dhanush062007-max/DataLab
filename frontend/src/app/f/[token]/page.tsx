@@ -28,7 +28,7 @@ export default function PublicFormPage() {
 
         // Block if Only Me
         if (data.visibility === 'only_me') {
-           throw new Error("This form is currently inactive");
+           throw new Error("This form is currently closed to public.");
         } 
         
         setSchema(data);
@@ -151,7 +151,9 @@ export default function PublicFormPage() {
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
         <div className="bg-card p-8 rounded-2xl shadow-sm max-w-md w-full text-center border border-border">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Form Unavailable</h1>
+          <h1 className="text-xl font-bold mb-2">
+            {error.toLowerCase().includes("closed") ? "Form Closed" : "Form Unavailable"}
+          </h1>
           <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
