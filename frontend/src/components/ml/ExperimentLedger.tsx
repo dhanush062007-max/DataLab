@@ -58,7 +58,7 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
           const isClassification = exp.algorithm && (exp.algorithm.includes("CLASSIFIER") || exp.algorithm.includes("LOGISTIC"));
           
           return (
-            <div key={exp.id} className="bg-card border border-border rounded-xl p-5 shadow-sm hover:border-primary/50 transition-colors">
+            <div key={exp.id} className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-sm hover:border-primary/50 transition-colors min-w-0 flex flex-col">
               <div className="flex justify-between items-start mb-4 gap-2">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-lg truncate" title={exp.model_name || exp.model_type}>
@@ -76,9 +76,9 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
 
               <div className="bg-muted rounded-lg p-3 mb-4 text-sm">
                 <div className="flex items-center gap-2 mb-1 text-muted-foreground">
-                  <Target className="w-4 h-4" /> Target Variable
+                  <Target className="w-4 h-4 shrink-0" /> Target Variable
                 </div>
-                <div className="font-semibold truncate">
+                <div className="font-semibold truncate" title={exp.target_column}>
                   {exp.target_column}
                 </div>
               </div>
@@ -86,24 +86,24 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
               <div className="grid grid-cols-2 gap-3">
                 {isClassification ? (
                   <>
-                    <div className="border border-border rounded-lg p-3 text-center bg-card">
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Accuracy</div>
-                      <div className="text-lg font-black text-primary">{(exp.metrics.accuracy * 100).toFixed(1)}%</div>
+                    <div className="border border-border rounded-lg p-2 sm:p-3 text-center bg-card min-w-0">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 truncate">Accuracy</div>
+                      <div className="text-lg font-black text-primary truncate">{(exp.metrics.accuracy * 100).toFixed(1)}%</div>
                     </div>
-                    <div className="border border-border rounded-lg p-3 text-center bg-card">
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">F1 Score</div>
-                      <div className="text-lg font-black text-primary">{(exp.metrics.f1_score * 100).toFixed(1)}%</div>
+                    <div className="border border-border rounded-lg p-2 sm:p-3 text-center bg-card min-w-0">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 truncate">F1 Score</div>
+                      <div className="text-lg font-black text-primary truncate">{(exp.metrics.f1_score * 100).toFixed(1)}%</div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="border border-border rounded-lg p-3 text-center bg-card">
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">R² Score</div>
-                      <div className="text-lg font-black text-primary">{exp.metrics?.r2?.toFixed(3)}</div>
+                    <div className="border border-border rounded-lg p-2 sm:p-3 text-center bg-card min-w-0">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 truncate">R² Score</div>
+                      <div className="text-lg font-black text-primary truncate">{exp.metrics?.r2?.toFixed(3)}</div>
                     </div>
-                    <div className="border border-border rounded-lg p-3 text-center bg-card">
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">MSE</div>
-                      <div className="text-lg font-black text-primary">{exp.metrics?.mse?.toFixed(3)}</div>
+                    <div className="border border-border rounded-lg p-2 sm:p-3 text-center bg-card min-w-0">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 truncate">MSE</div>
+                      <div className="text-lg font-black text-primary truncate">{exp.metrics?.mse?.toFixed(3)}</div>
                     </div>
                   </>
                 )}
