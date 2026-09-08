@@ -334,6 +334,6 @@ export default function PublicFormPage() {
           Powered by <strong>DataLab</strong>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
