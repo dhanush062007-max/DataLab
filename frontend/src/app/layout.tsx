@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   keywords: ["Data Science", "Machine Learning", "Datasets", "Statistical Testing", "Data Visualization", "DataLab", "Data Analysis"],
   authors: [{ name: "DataLab Researchers" }],
   creator: "DataLab",
+  verification: {
+    google: "oZselN3LsERDeothB7teAB9IqZI5LoOFXwWtYlWXPZI",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
