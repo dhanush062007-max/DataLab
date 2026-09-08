@@ -6,11 +6,13 @@ import { supabase } from "@/lib/supabase";
 import { Database, Grid, BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, Compass, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { EDAOverview } from "@/components/eda/EDAOverview";
-import { StatisticalTesting } from "@/components/stats/StatisticalTesting";
-import { ChartBuilder } from "@/components/visualization/ChartBuilder";
-import { ReportGenerator } from "@/components/reports/ReportGenerator";
-import { ExperimentLedger } from "@/components/ml/ExperimentLedger";
+import dynamic from "next/dynamic";
+
+const EDAOverview = dynamic(() => import("@/components/eda/EDAOverview").then(m => m.EDAOverview), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const StatisticalTesting = dynamic(() => import("@/components/stats/StatisticalTesting").then(m => m.StatisticalTesting), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ChartBuilder = dynamic(() => import("@/components/visualization/ChartBuilder").then(m => m.ChartBuilder), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ReportGenerator = dynamic(() => import("@/components/reports/ReportGenerator").then(m => m.ReportGenerator), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ExperimentLedger = dynamic(() => import("@/components/ml/ExperimentLedger").then(m => m.ExperimentLedger), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 
 function ExploreDatasetContent() {
   const params = useParams();

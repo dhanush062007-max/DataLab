@@ -7,13 +7,15 @@ import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, S
 import { Button } from "@/components/ui/button";
 import Papa from "papaparse";
 import Link from "next/link";
-import { EDAOverview } from "@/components/eda/EDAOverview";
-import { DataCleaning } from "@/components/eda/DataCleaning";
-import { ModelTrainer } from "@/components/ml/ModelTrainer";
-import { StatisticalTesting } from "@/components/stats/StatisticalTesting";
-import { ChartBuilder } from "@/components/visualization/ChartBuilder";
-import { ReportGenerator } from "@/components/reports/ReportGenerator";
-import { ExperimentLedger } from "@/components/ml/ExperimentLedger";
+import dynamic from "next/dynamic";
+
+const EDAOverview = dynamic(() => import("@/components/eda/EDAOverview").then(m => m.EDAOverview), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const DataCleaning = dynamic(() => import("@/components/eda/DataCleaning").then(m => m.DataCleaning), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ModelTrainer = dynamic(() => import("@/components/ml/ModelTrainer").then(m => m.ModelTrainer), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const StatisticalTesting = dynamic(() => import("@/components/stats/StatisticalTesting").then(m => m.StatisticalTesting), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ChartBuilder = dynamic(() => import("@/components/visualization/ChartBuilder").then(m => m.ChartBuilder), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ReportGenerator = dynamic(() => import("@/components/reports/ReportGenerator").then(m => m.ReportGenerator), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const ExperimentLedger = dynamic(() => import("@/components/ml/ExperimentLedger").then(m => m.ExperimentLedger), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 import { BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical } from "lucide-react";
 
 function DatasetWorkspaceContent() {
