@@ -9,8 +9,11 @@ const PUBLIC_PREFIXES = [
   "/explore/",   // individual dataset explore pages
   "/f/",         // public form submission pages
   "/_next/",     // Next.js internals
+  "/api/",       // API routes
+  "/auth/",      // Supabase auth callback
   "/favicon",
   "/grid.svg",
+  "/icon",
 ];
 
 function isPublicRoute(pathname: string): boolean {
