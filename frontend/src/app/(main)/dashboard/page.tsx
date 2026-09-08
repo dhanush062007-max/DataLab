@@ -173,15 +173,15 @@ export default function DashboardPage() {
                 <div 
                   key={dataset.id} 
                   onClick={() => router.push(`/datasets/${dataset.id}`)}
-                  className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-border"
+                  className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-border gap-2"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 flex items-center justify-center">
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                       <Database className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-sm">{dataset.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">{dataset.description || "No description"}</p>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-semibold text-sm truncate">{dataset.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{dataset.description || "No description"}</p>
                     </div>
                   </div>
                   <div className="hidden md:flex flex-col items-end gap-1">
