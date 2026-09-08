@@ -354,14 +354,14 @@ function ExploreDatasetContent() {
           {/* TAB: REPORT */}
           {activeTab === "REPORT" && (
             <div className="overflow-y-auto pr-2 pb-12 h-full">
-              <ReportGenerator datasetId={datasetId} columns={columns} />
+              <ReportGenerator datasetId={datasetId} datasetName={dataset?.name || ""} />
             </div>
           )}
 
           {/* TAB: EXPERIMENTS */}
           {activeTab === "EXPERIMENTS" && (
             <div className="overflow-y-auto pr-2 pb-12 h-full">
-              <ExperimentLedger datasetId={datasetId} isOwner={false} />
+              <ExperimentLedger datasetId={datasetId} />
             </div>
           )}
 

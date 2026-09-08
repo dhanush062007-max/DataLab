@@ -251,7 +251,7 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
                         cy="50%" 
                         outerRadius={150} 
                         fill="#8884d8" 
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                       >
                         {result.data.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

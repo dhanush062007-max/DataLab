@@ -7,7 +7,7 @@ type EDAStats = {
   columns: any[];
 };
 
-export function EDAOverview({ datasetId }: { datasetId: str }) {
+export function EDAOverview({ datasetId }: { datasetId: string }) {
   const [stats, setStats] = useState<EDAStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
