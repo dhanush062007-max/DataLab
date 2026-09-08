@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   authors: [{ name: "DataLab Researchers" }],
   creator: "DataLab",
   icons: {
-    icon: "/icon.png?v=2",
-    apple: "/icon.png?v=2",
+    icon: "/favicon.ico?v=3",
+    apple: "/favicon.ico?v=3",
   },
   verification: {
     google: "oZselN3LsERDeothB7teAB9IqZI5LoOFXwWtYlWXPZI",
