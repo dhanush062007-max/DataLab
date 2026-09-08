@@ -86,14 +86,40 @@ function DatasetsContent() {
         </Link>
       </div>
 
-            <Button onClick={handleExport} variant="outline" size="sm" className="flex items-center gap-2 h-10 flex-1 sm:flex-none">
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
+      {/* Filters and Search */}
+      <div className="bg-card border border-border p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <input 
+            type="text" 
+            placeholder="Search datasets by name or description..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          />
         </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-3 py-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <select 
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="bg-transparent text-sm font-medium focus:outline-none"
+            >
+              <option value="all">All Types</option>
+              <option value="FORM">Forms</option>
+              <option value="CSV">Imports</option>
+              <option value="MANUAL">Manual</option>
+              <option value="PUBLISHED">Published</option>
+            </select>
+          </div>
+          <Button variant="outline" size="icon" onClick={handleExport} className="rounded-lg shrink-0">
+            <Download className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
 
-        {/* Data List */}
+      {/* Data List */}
         {loading ? (
           <div className="p-12 text-center text-muted-foreground">Loading datasets...</div>
         ) : datasets.length === 0 ? (
