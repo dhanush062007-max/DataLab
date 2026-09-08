@@ -17,84 +17,188 @@ class VisualizationRequest(BaseModel):
 
 @router.post("/{dataset_id}/visualize")
 async def generate_visualization(dataset_id: str, request: VisualizationRequest, supabase: Client = Depends(get_supabase_client)):
-    # 1. Fetch current dataset records
-    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id)
-    response = query.execute()
-    records = response.data
+    # 1. Fetch active version
+    d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
+    active_version_id = d_res.data.get("active_version_id") if d_res.data else None
     
-    if not records:
-        raise HTTPException(status_code=400, detail="Dataset is empty.")
-        
-    df = pd.DataFrame([r["data"] for r in records])
+    chunk_size = 1000
+    current_offset = 0
+    
+    result_data = []
     
     try:
-        # Check columns
-        if request.x_axis not in df.columns:
-            raise ValueError(f"X-Axis column '{request.x_axis}' not found.")
-        if request.y_axis and request.y_axis not in df.columns:
-            raise ValueError(f"Y-Axis column '{request.y_axis}' not found.")
-            
-        result_data = []
-
         if request.chart_type in ["BAR", "LINE", "PIE"]:
             if not request.y_axis and request.aggregation != "COUNT":
                 raise ValueError(f"Y-Axis is required for {request.chart_type} unless aggregation is COUNT.")
                 
-            clean_df = df.copy()
-            
-            # Perform Aggregation
             if request.aggregation == "NONE":
-                # No aggregation, just take top 100 rows to prevent overwhelming the browser
-                if request.y_axis:
-                    clean_df = clean_df[[request.x_axis, request.y_axis]].dropna()
-                else:
-                    clean_df = clean_df[[request.x_axis]].dropna()
-                result_df = clean_df.head(100)
-            else:
-                # Need to group by X
-                # Drop NaNs in X
-                clean_df = clean_df.dropna(subset=[request.x_axis])
+                # Just fetch 100 valid rows and stop
+                max_points = 100
                 
-                if request.aggregation == "COUNT":
-                    # Count occurrences of X
-                    result_df = clean_df.groupby(request.x_axis).size().reset_index(name='COUNT')
-                    request.y_axis = 'COUNT' # Reassign y_axis to COUNT for the output
-                else:
-                    # Drop NaNs in Y
-                    clean_df = clean_df.dropna(subset=[request.y_axis])
+                while True:
+                    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).order("id").range(current_offset, current_offset + chunk_size - 1)
+                    if active_version_id:
+                        query = query.eq("version_id", active_version_id)
+                    else:
+                        query = query.is_("version_id", "null")
+                        
+                    res = query.execute()
+                    fetched = res.data
                     
-                    if request.aggregation == "SUM":
-                        result_df = clean_df.groupby(request.x_axis)[request.y_axis].sum().reset_index()
+                    if not fetched:
+                        break
+                        
+                    for r in fetched:
+                        row = r["data"]
+                        val_x = row.get(request.x_axis)
+                        val_y = row.get(request.y_axis) if request.y_axis else None
+                        
+                        if val_x is None:
+                            continue
+                            
+                        if request.y_axis and val_y is None:
+                            continue
+                            
+                        point = {"name": str(val_x)}
+                        if request.y_axis:
+                            point[request.y_axis] = val_y
+                            
+                        result_data.append(point)
+                        
+                        if len(result_data) >= max_points:
+                            break
+                            
+                    if len(result_data) >= max_points or len(fetched) < chunk_size:
+                        break
+                        
+                    current_offset += chunk_size
+                    
+            else:
+                # Aggregations (Stream all chunks)
+                groups = {}
+                
+                while True:
+                    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).order("id").range(current_offset, current_offset + chunk_size - 1)
+                    if active_version_id:
+                        query = query.eq("version_id", active_version_id)
+                    else:
+                        query = query.is_("version_id", "null")
+                        
+                    res = query.execute()
+                    fetched = res.data
+                    
+                    if not fetched:
+                        break
+                        
+                    for r in fetched:
+                        row = r["data"]
+                        val_x = row.get(request.x_axis)
+                        if val_x is None:
+                            continue
+                            
+                        x_str = str(val_x)
+                        
+                        if request.aggregation == "COUNT":
+                            if x_str not in groups:
+                                groups[x_str] = 0
+                            groups[x_str] += 1
+                        else:
+                            val_y = row.get(request.y_axis)
+                            if val_y is None:
+                                continue
+                                
+                            try:
+                                num_y = float(val_y)
+                            except (ValueError, TypeError):
+                                continue
+                                
+                            if x_str not in groups:
+                                if request.aggregation == "MEAN":
+                                    groups[x_str] = {"sum": 0.0, "count": 0}
+                                else:
+                                    groups[x_str] = num_y if request.aggregation in ["MIN", "MAX"] else 0.0
+                                    
+                            if request.aggregation == "SUM":
+                                groups[x_str] += num_y
+                            elif request.aggregation == "MEAN":
+                                groups[x_str]["sum"] += num_y
+                                groups[x_str]["count"] += 1
+                            elif request.aggregation == "MIN":
+                                if num_y < groups[x_str]:
+                                    groups[x_str] = num_y
+                            elif request.aggregation == "MAX":
+                                if num_y > groups[x_str]:
+                                    groups[x_str] = num_y
+                                    
+                    if len(fetched) < chunk_size:
+                        break
+                    current_offset += chunk_size
+                    
+                # Compile groups into result_data
+                for k, v in groups.items():
+                    point = {"name": k}
+                    if request.aggregation == "COUNT":
+                        point["COUNT"] = v
                     elif request.aggregation == "MEAN":
-                        result_df = clean_df.groupby(request.x_axis)[request.y_axis].mean().reset_index()
-                    elif request.aggregation == "MIN":
-                        result_df = clean_df.groupby(request.x_axis)[request.y_axis].min().reset_index()
-                    elif request.aggregation == "MAX":
-                        result_df = clean_df.groupby(request.x_axis)[request.y_axis].max().reset_index()
-
-            # Format for Recharts
-            result_df['name'] = result_df[request.x_axis].astype(str)
-            cols_to_keep = ['name']
-            if request.y_axis:
-                cols_to_keep.append(request.y_axis)
-                
-            final_df = result_df[cols_to_keep].copy()
-            # Replace NaNs with None for JSON compliance
-            final_df = final_df.replace({float('nan'): None})
-            result_data = json.loads(final_df.to_json(orient="records"))
-                
+                        point[request.y_axis] = v["sum"] / v["count"] if v["count"] > 0 else None
+                    else:
+                        point[request.y_axis] = v
+                        
+                    result_data.append(point)
+                    
+                # Sort and limit to top 100 for browser performance
+                if request.aggregation == "COUNT":
+                    result_data.sort(key=lambda x: x["COUNT"], reverse=True)
+                    request.y_axis = "COUNT"
+                elif request.aggregation in ["SUM", "MEAN", "MAX", "MIN"]:
+                    result_data.sort(key=lambda x: x[request.y_axis] if x[request.y_axis] is not None else float('-inf'), reverse=True)
+                    
+                result_data = result_data[:100]
+                    
         elif request.chart_type == "SCATTER":
             if not request.y_axis:
                 raise ValueError("Y-Axis is required for Scatter Plot.")
-            
-            clean_df = df[[request.x_axis, request.y_axis]].dropna()
-            
-            # Limit to 500 points for scatter
-            result_df = clean_df.head(500)
-            
-            final_df = result_df[[request.x_axis, request.y_axis]].copy()
-            final_df = final_df.replace({float('nan'): None})
-            result_data = json.loads(final_df.to_json(orient="records"))
+                
+            max_points = 500
+            while True:
+                query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).order("id").range(current_offset, current_offset + chunk_size - 1)
+                if active_version_id:
+                    query = query.eq("version_id", active_version_id)
+                else:
+                    query = query.is_("version_id", "null")
+                    
+                res = query.execute()
+                fetched = res.data
+                
+                if not fetched:
+                    break
+                    
+                for r in fetched:
+                    row = r["data"]
+                    val_x = row.get(request.x_axis)
+                    val_y = row.get(request.y_axis)
+                    
+                    if val_x is None or val_y is None:
+                        continue
+                        
+                    result_data.append({
+                        request.x_axis: val_x,
+                        request.y_axis: val_y
+                    })
+                    
+                    if len(result_data) >= max_points:
+                        break
+                        
+                if len(result_data) >= max_points or len(fetched) < chunk_size:
+                    break
+                    
+                current_offset += chunk_size
+                
+        # Safety check: convert any NaNs to None for JSON compliance
+        for item in result_data:
+            for k, v in item.items():
+                if isinstance(v, float) and math.isnan(v):
+                    item[k] = None
 
         return {
             "chart_type": request.chart_type,
