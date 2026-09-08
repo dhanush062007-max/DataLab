@@ -89,6 +89,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      <main className="flex-1 flex flex-col">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-16 pb-20 md:pt-32 md:pb-40 px-4">
         {/* Animated Background Mesh */}
@@ -212,6 +213,7 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="py-8 text-center text-sm text-muted-foreground border-t border-border/50 bg-background">
