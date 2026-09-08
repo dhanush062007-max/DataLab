@@ -46,6 +46,13 @@ function DatasetWorkspaceContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 50;
 
+  // Search State
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchColumn, setSearchColumn] = useState("");
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
+  const [appliedSearchColumn, setAppliedSearchColumn] = useState("");
+  const [filteredCount, setFilteredCount] = useState<number | null>(null);
+
   // CSV Upload State
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -132,7 +139,7 @@ function DatasetWorkspaceContent() {
 
       let rQuery = supabase
         .from("dataset_records")
-        .select("id, data, created_at")
+        .select("id, data, created_at", { count: "exact" })
         .eq("dataset_id", datasetId)
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -142,13 +149,34 @@ function DatasetWorkspaceContent() {
       } else {
         rQuery = rQuery.is("version_id", null);
       }
+
+      if (appliedSearchTerm && appliedSearchColumn) {
+        rQuery = rQuery.ilike(`data->>${appliedSearchColumn}`, `%${appliedSearchTerm}%`);
+      }
         
-      const { data: rData } = await rQuery;
+      const { data: rData, count } = await rQuery;
       if (rData) setRecords(rData);
+      if (count !== null) setFilteredCount(count);
     };
 
     fetchRecords();
-  }, [dataset, currentPage, datasetId]);
+  }, [dataset, currentPage, datasetId, appliedSearchTerm, appliedSearchColumn]);
+
+  const handleSearch = () => {
+    if (!searchColumn) return;
+    setAppliedSearchColumn(searchColumn);
+    setAppliedSearchTerm(searchTerm);
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setSearchColumn("");
+    setAppliedSearchTerm("");
+    setAppliedSearchColumn("");
+    setCurrentPage(1);
+    setFilteredCount(null);
+  };
 
   // Handle CSV Upload via PapaParse Web Worker
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -592,10 +620,37 @@ function DatasetWorkspaceContent() {
                   Data Explorer
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                  {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, dataset?.row_count || 0)} of ${dataset?.row_count || 0}` : `0 of ${dataset?.row_count || 0}`}
+                  {records.length > 0 ? `${(currentPage - 1) * recordsPerPage + 1}-${Math.min(currentPage * recordsPerPage, filteredCount ?? dataset?.row_count || 0)} of ${filteredCount ?? dataset?.row_count || 0}` : `0 of ${filteredCount ?? dataset?.row_count || 0}`}
                 </span>
               </div>
               <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                {/* Search Box */}
+                <div className="flex items-center gap-1 w-full sm:w-auto mr-2">
+                  <select 
+                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1"
+                    value={searchColumn}
+                    onChange={(e) => setSearchColumn(e.target.value)}
+                  >
+                    <option value="">Select Column...</option>
+                    {columns.map(c => <option key={c.column_name} value={c.column_name}>{c.display_name || c.column_name}</option>)}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="h-8 text-xs rounded-md border border-input bg-background px-2 py-1 flex-1 sm:w-32"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                  {appliedSearchTerm ? (
+                    <Button onClick={handleClearSearch} variant="ghost" size="sm" className="h-8 px-2 text-xs">Clear</Button>
+                  ) : (
+                    <Button onClick={handleSearch} variant="secondary" size="sm" className="h-8 px-2 text-xs">
+                      <Search className="w-3 h-3 mr-1" /> Search
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-1 sm:mr-2">
                   <Button 
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
@@ -609,7 +664,7 @@ function DatasetWorkspaceContent() {
                   <span className="text-xs font-medium px-2">Page {currentPage}</span>
                   <Button 
                     onClick={() => setCurrentPage(prev => prev + 1)} 
-                    disabled={currentPage * recordsPerPage >= (dataset?.row_count || 0)} 
+                    disabled={currentPage * recordsPerPage >= (filteredCount ?? dataset?.row_count ?? 0)} 
                     variant="outline" 
                     size="sm"
                     className="h-8 px-2"
