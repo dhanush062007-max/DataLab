@@ -574,7 +574,7 @@ function DatasetWorkspaceContent() {
                       <thead className="text-xs text-muted-foreground uppercase bg-muted/30 border-b border-border">
                         <tr>
                           <th className="px-4 py-2 font-medium">Column Name</th>
-                          <th className="px-4 py-2 font-medium">Data Type</th>
+                          <th className="px-4 py-2 font-medium">Type</th>
                           <th className="px-4 py-2 font-medium">Required</th>
                         </tr>
                       </thead>
@@ -582,7 +582,9 @@ function DatasetWorkspaceContent() {
                         {columns.map(col => (
                           <tr key={col.id}>
                             <td className="px-4 py-3 font-medium">{col.display_name}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{col.data_type}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {col.semantic_type && col.semantic_type !== 'UNKNOWN' ? col.semantic_type.replace(/_/g, ' ') : col.data_type}
+                            </td>
                             <td className="px-4 py-3">
                               {col.required ? <span className="text-red-500 font-bold">*</span> : <span className="text-muted-foreground">-</span>}
                             </td>
