@@ -45,6 +45,7 @@ export default function NewDatasetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdDatasetId, setCreatedDatasetId] = useState<string | null>(null);
+  const [createdFormToken, setCreatedFormToken] = useState<string | null>(null);
 
   // Form Data
   const [name, setName] = useState("");
@@ -191,6 +192,14 @@ export default function NewDatasetPage() {
       if (colsError) throw colsError;
 
       if (sourceType === "FORM") {
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const { error: formError } = await supabase
+          .from("collection_forms")
+          .insert({ dataset_id: datasetData.id, token: token, is_active: true });
+
+        if (formError) throw formError;
+
+        setCreatedFormToken(token);
         setCreatedDatasetId(datasetData.id);
         setStep(3);
       } else {
@@ -459,14 +468,14 @@ export default function NewDatasetPage() {
                 <div className="p-2 bg-background rounded shadow-sm border border-border hidden sm:block">
                   <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                 </div>
-                <span className="text-sm truncate font-medium font-mono text-foreground">{typeof window !== 'undefined' ? window.location.origin : ''}/f/{createdDatasetId}</span>
+                <span className="text-sm truncate font-medium font-mono text-foreground">{typeof window !== 'undefined' ? window.location.origin : ''}/f/{createdFormToken}</span>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="shrink-0 bg-background hover:bg-muted w-full sm:w-auto"
                 onClick={() => {
-                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/f/${createdDatasetId}`);
+                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/f/${createdFormToken}`);
                   alert("Link copied!");
                 }}
               >
