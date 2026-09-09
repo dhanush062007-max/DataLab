@@ -276,7 +276,7 @@ export default function PublicFormPage() {
                     </label>
                   )}
 
-                  {['SINGLE_CHOICE', 'ORDINAL_CHOICE', 'CATEGORY'].includes(semType) && choices.length > 0 && (
+                  {['SINGLE_CHOICE', 'ORDINAL_CHOICE', 'CATEGORY'].includes(semType) && (
                     <select
                       value={formData[col.column_name] || ""}
                       onChange={(e) => handleInputChange(col.column_name, e.target.value)}
@@ -287,6 +287,7 @@ export default function PublicFormPage() {
                       {choices.map((choice: string, idx: number) => (
                         <option key={idx} value={choice}>{choice}</option>
                       ))}
+                      {choices.length === 0 && <option value="" disabled>No options available</option>}
                     </select>
                   )}
 
