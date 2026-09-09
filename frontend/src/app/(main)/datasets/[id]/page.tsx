@@ -721,24 +721,36 @@ function DatasetWorkspaceContent() {
                     <div key={col.id} className="space-y-1">
                       <label className="text-xs font-semibold text-muted-foreground">{col.display_name} {col.required && "*"}</label>
                       
-                      {col.data_type === "BOOLEAN" ? (
+                      {col.data_type === "BOOLEAN" || col.semantic_type === "BOOLEAN" ? (
                         <input 
                           type="checkbox" 
                           checked={newRowData[col.column_name] || false}
                           onChange={(e) => setNewRowData({...newRowData, [col.column_name]: e.target.checked})}
                           className="block mt-2 w-4 h-4 text-primary"
                         />
-                      ) : col.data_type === "INTEGER" || col.data_type === "DECIMAL" ? (
+                      ) : col.data_type === "INTEGER" || col.data_type === "DECIMAL" || col.semantic_type === "INTEGER" || col.semantic_type === "DECIMAL" ? (
                         <input 
                           type="number" 
-                          value={newRowData[col.column_name]}
+                          value={newRowData[col.column_name] || ""}
                           onChange={(e) => setNewRowData({...newRowData, [col.column_name]: e.target.value === "" ? "" : Number(e.target.value)})}
                           className="w-full h-8 px-2 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
                         />
+                      ) : ["SINGLE_CHOICE", "ORDINAL_CHOICE", "CATEGORY"].includes(col.semantic_type) ? (
+                        <select 
+                          value={newRowData[col.column_name] || ""}
+                          onChange={(e) => setNewRowData({...newRowData, [col.column_name]: e.target.value})}
+                          className="w-full h-8 px-2 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
+                        >
+                          <option value="" disabled>Select option</option>
+                          {(col.options || []).map((opt: string, idx: number) => (
+                            <option key={idx} value={opt}>{opt}</option>
+                          ))}
+                          {(!col.options || col.options.length === 0) && <option value="" disabled>No options available</option>}
+                        </select>
                       ) : (
                         <input 
                           type="text" 
-                          value={newRowData[col.column_name]}
+                          value={newRowData[col.column_name] || ""}
                           onChange={(e) => setNewRowData({...newRowData, [col.column_name]: e.target.value})}
                           className="w-full h-8 px-2 rounded-md border border-input bg-background text-sm outline-none focus:border-primary"
                         />
