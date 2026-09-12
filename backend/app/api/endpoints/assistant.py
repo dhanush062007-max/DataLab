@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from supabase import Client
 from app.core.supabase import get_supabase_client
+from app.core.rate_limit import limiter
 import pandas as pd
 from app.services.assistant_engine import AssistantEngine
 
@@ -11,7 +12,8 @@ class ChatRequest(BaseModel):
     query: str
 
 @router.post("/{dataset_id}/assistant/query")
-def process_natural_language_query(dataset_id: str, chat_req: ChatRequest, supabase: Client = Depends(get_supabase_client)):
+@limiter.limit("5/minute")
+def process_natural_language_query(request: Request, dataset_id: str, chat_req: ChatRequest, supabase: Client = Depends(get_supabase_client)):
     try:
         # 1. Fetch active version, column metadata, and total row count
         d_res = supabase.table("datasets").select("active_version_id, row_count").eq("id", dataset_id).single().execute()
