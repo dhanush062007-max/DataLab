@@ -86,10 +86,9 @@ Instructions:
 5. If the user asks a follow-up question (e.g. "What was the max of that?"), refer to the Conversation History to understand what they mean by "that".
 6. Keep the response under 4 sentences.
 """
-                response = client.models.generate_content(
-                    model='gemini-3.6-flash',
-                    contents=prompt
-                )
+                chat = client.chats.create(model='gemini-3.6-flash')
+                response = chat.send_message(prompt)
+                
                 return response.text.strip()
                 
             except Exception as e:
