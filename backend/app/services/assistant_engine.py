@@ -62,7 +62,7 @@ Instructions:
 5. Keep the response under 4 sentences.
 """
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-3.6-flash',
                     contents=prompt
                 )
                 return response.text.strip()
