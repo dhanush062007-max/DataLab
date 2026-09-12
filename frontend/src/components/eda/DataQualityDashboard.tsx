@@ -83,15 +83,15 @@ export function DataQualityDashboard({ datasetId }: DataQualityProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className={`col-span-1 border rounded-xl p-6 flex flex-col items-center justify-center ${getScoreBg(quality.score)}`}>
+        <div className={`col-span-1 md:col-span-1 border rounded-xl p-6 flex flex-col items-center justify-center ${getScoreBg(quality.score)}`}>
           <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-2">Overall Quality</div>
-          <div className={`text-6xl font-black ${getScoreColor(quality.score)}`}>{quality.score}</div>
+          <div className={`text-5xl md:text-6xl font-black ${getScoreColor(quality.score)}`}>{quality.score}</div>
           <div className="text-sm text-muted-foreground mt-2">out of 100</div>
         </div>
 
-        <div className="col-span-2 bg-card border border-border rounded-xl p-6 shadow-sm">
+        <div className="col-span-1 md:col-span-2 bg-card border border-border rounded-xl p-4 md:p-6 shadow-sm">
           <h3 className="font-bold mb-4 text-lg">Score Breakdown</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Completeness</span>
