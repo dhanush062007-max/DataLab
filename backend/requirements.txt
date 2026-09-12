@@ -7,4 +7,4 @@ pandas
 scikit-learn
 scipy
 slowapi
-google-generativeai
+google-genai

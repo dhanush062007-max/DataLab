@@ -5,7 +5,7 @@ import json
 from typing import Dict, Any, List
 
 try:
-    import google.generativeai as genai
+    from google import genai
 except ImportError:
     genai = None
 
@@ -21,8 +21,7 @@ class AssistantEngine:
         
         if gemini_api_key and genai is not None:
             try:
-                genai.configure(api_key=gemini_api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                client = genai.Client(api_key=gemini_api_key)
                 
                 # Construct context payload
                 columns_info = ", ".join([f"{c['column_name']} ({c.get('semantic_type') or c.get('data_type')})" for c in column_metadata])
@@ -52,7 +51,10 @@ Instructions:
 3. If the user asks general questions about the dataset's nature, use the schema and sample data to infer.
 4. Keep the response under 4 sentences.
 """
-                response = model.generate_content(prompt)
+                response = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=prompt
+                )
                 return response.text.strip()
                 
             except Exception as e:
