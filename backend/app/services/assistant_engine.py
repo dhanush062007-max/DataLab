@@ -11,7 +11,7 @@ except ImportError:
 
 class AssistantEngine:
     @staticmethod
-    def answer_query(query: str, df: pd.DataFrame, column_metadata: List[Dict[str, Any]]) -> str:
+    def answer_query(query: str, df: pd.DataFrame, column_metadata: List[Dict[str, Any]], history: List[Dict[str, str]] = None) -> str:
         """
         Parses a natural language query and uses an LLM (Gemini) to generate an answer.
         Falls back to a robust keyword-based heuristic if the API key is missing or fails.
@@ -30,6 +30,13 @@ class AssistantEngine:
                 summary_stats = df.describe(include='all').to_string()
                 head_sample = df.head(3).to_string()
                 
+                # Format conversation history
+                history_text = ""
+                if history:
+                    history_text = "Conversation History (Last 5 Interactions):\n"
+                    for idx, h in enumerate(history):
+                        history_text += f"User ({idx+1}): {h['query']}\nAI ({idx+1}): {h['response']}\n\n"
+                
                 prompt = f"""
 You are DataLab Assistant, an expert AI data analyst. 
 The user is asking a question about their current dataset. Answer the question based ONLY on the provided context.
@@ -43,13 +50,16 @@ Statistical Summary:
 Sample Data (First 3 rows):
 {head_sample}
 
+{history_text}
+
 User Question: "{query}"
 
 Instructions:
 1. Be concise, direct, and helpful. Do not output markdown code blocks unless you are writing code.
 2. If the user asks for calculations (like average, max, count), try to find the answer in the Statistical Summary. If it's not there, explain that you can't perform exact calculations on arbitrary string categories, but provide the closest approximation from the summary.
 3. If the user asks general questions about the dataset's nature, use the schema and sample data to infer.
-4. Keep the response under 4 sentences.
+4. If the user asks a follow-up question (e.g. "What was the max of that?"), refer to the Conversation History to understand what they mean by "that".
+5. Keep the response under 4 sentences.
 """
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',

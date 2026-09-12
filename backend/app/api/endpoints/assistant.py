@@ -33,8 +33,18 @@ def process_natural_language_query(dataset_id: str, chat_req: ChatRequest, supab
             
         df = pd.DataFrame([r["data"] for r in r_res.data])
         
-        # 3. Process via AssistantEngine
-        response = AssistantEngine.answer_query(chat_req.query, df, column_metadata)
+        # 3. Fetch past conversation history (memory)
+        # We need the user's ID to fetch their specific chat history, but since this route doesn't force auth yet,
+        # we can fetch history by dataset_id. However, fetching by dataset_id alone might mix users if it's public.
+        # For simplicity, let's fetch the last 5 logs for this dataset_id regardless of user for now, or just the user's if available.
+        # To make it safer, we just fetch by dataset_id.
+        h_res = supabase.table("assistant_logs").select("query, response, created_at").eq("dataset_id", dataset_id).order("created_at", desc=True).limit(5).execute()
+        history = h_res.data or []
+        # Reverse to chronological order (oldest first)
+        history.reverse()
+        
+        # 4. Process via AssistantEngine
+        response = AssistantEngine.answer_query(chat_req.query, df, column_metadata, history)
         
         return {"response": response}
 
