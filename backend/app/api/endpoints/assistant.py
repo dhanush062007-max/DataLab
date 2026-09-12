@@ -41,8 +41,24 @@ def process_natural_language_query(request: Request, dataset_id: str, chat_req: 
         history = h_res.data or []
         history.reverse()
         
-        # 4. Process via AssistantEngine
-        response = AssistantEngine.answer_query(chat_req.query, df, column_metadata, history, total_rows)
+        # 4. Perform Full Database RPC Search for specific keywords
+        import re
+        words = re.findall(r'\b\w+\b', chat_req.query.lower())
+        stopwords = {"in", "which", "does", "comes", "what", "is", "the", "for", "a", "an", "of", "to", "and"}
+        search_terms = [w for w in words if len(w) >= 4 and w not in stopwords]
+        
+        relevant_rows = []
+        if search_terms:
+            # We'll just search using the most unique/first valid keyword to avoid too many RPC calls
+            try:
+                rpc_res = supabase.rpc("search_dataset_records", {"p_dataset_id": dataset_id, "p_term": search_terms[0]}).execute()
+                if rpc_res.data:
+                    relevant_rows = [r["data"] for r in rpc_res.data]
+            except Exception as e:
+                print(f"RPC search failed (function might not exist yet): {e}")
+        
+        # 5. Process via AssistantEngine
+        response = AssistantEngine.answer_query(chat_req.query, df, column_metadata, history, total_rows, relevant_rows)
         
         return {"response": response}
 

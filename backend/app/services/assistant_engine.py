@@ -11,7 +11,7 @@ except ImportError:
 
 class AssistantEngine:
     @staticmethod
-    def answer_query(query: str, df: pd.DataFrame, column_metadata: List[Dict[str, Any]], history: List[Dict[str, str]] = None, total_rows: int = 0) -> str:
+    def answer_query(query: str, df: pd.DataFrame, column_metadata: List[Dict[str, Any]], history: List[Dict[str, str]] = None, total_rows: int = 0, relevant_rows: List[Dict[str, Any]] = None) -> str:
         """
         Parses a natural language query and uses an LLM (Gemini) to generate an answer.
         Falls back to a robust keyword-based heuristic if the API key is missing or fails.
@@ -37,24 +37,13 @@ class AssistantEngine:
                     for idx, h in enumerate(history):
                         history_text += f"User ({idx+1}): {h['query']}\nAI ({idx+1}): {h['response']}\n\n"
                 
-                # Naive Semantic Search: Find specific rows relevant to the user query
-                import re
-                words = re.findall(r'\b\w+\b', query.lower())
-                stopwords = {"in", "which", "does", "comes", "what", "is", "the", "for", "a", "an", "of", "to", "and"}
-                search_terms = [w for w in words if len(w) >= 3 and w not in stopwords]
-                
+                # Format relevant rows found by RPC
                 relevant_data = ""
-                if search_terms:
-                    df_string = df.astype(str).apply(lambda x: x.str.lower())
-                    mask = pd.Series(False, index=df.index)
-                    for term in search_terms:
-                        for col in df_string.columns:
-                            mask = mask | df_string[col].str.contains(term, regex=False)
-                    
-                    matched_rows = df[mask].head(5)
-                    if not matched_rows.empty:
-                        relevant_data = "Relevant Data Snippets (Found based on your query):\n"
-                        relevant_data += matched_rows.to_string() + "\n"
+                if relevant_rows:
+                    relevant_data = "Relevant Data Snippets (Found based on your query):\n"
+                    # Convert list of dicts to string
+                    import json
+                    relevant_data += json.dumps(relevant_rows, indent=2) + "\n"
                 
                 prompt = f"""
 You are DataLab Assistant, an expert AI data analyst. 
