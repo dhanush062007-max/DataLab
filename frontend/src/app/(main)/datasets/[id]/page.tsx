@@ -308,6 +308,21 @@ function DatasetWorkspaceContent() {
             .from("datasets")
             .update({ row_count: (dataset.row_count || 0) + totalInserted, status: "READY" })
             .eq("id", datasetId);
+            
+          // Trigger Semantic Profiling on the Backend
+          try {
+            const { data: authData } = await supabase.auth.getSession();
+            const token = authData.session?.access_token;
+            const headers: HeadersInit = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/profile`, {
+              method: 'POST',
+              headers
+            });
+          } catch (e) {
+            console.error("Failed to run profiling:", e);
+          }
 
           setUploadProgress(100);
           setUploading(false);

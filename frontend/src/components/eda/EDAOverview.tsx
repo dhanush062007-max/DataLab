@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Loader2, AlertCircle } from "lucide-react";
+import { TypeAwareEDA } from "./TypeAwareEDA";
 
 type EDAStats = {
   total_rows: number;
@@ -123,52 +124,7 @@ export function EDAOverview({ datasetId }: { datasetId: string }) {
               </span>
             </div>
             
-            {['LONG_TEXT', 'SHORT_TEXT'].includes(col.semantic_type) ? (
-              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
-                <div>
-                  <div className="text-muted-foreground text-xs">Avg Length</div>
-                  <div className="font-semibold">{col.avg_length !== undefined ? col.avg_length.toFixed(1) + ' chars' : 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs">Avg Words</div>
-                  <div className="font-semibold">{col.avg_words !== undefined ? col.avg_words.toFixed(1) + ' words' : 'N/A'}</div>
-                </div>
-              </div>
-            ) : col.is_numeric ? (
-              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
-                <div>
-                  <div className="text-muted-foreground text-xs">Mean</div>
-                  <div className="font-semibold">{col.mean !== null ? col.mean.toFixed(2) : 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs">Median</div>
-                  <div className="font-semibold">{col.median !== null ? col.median.toFixed(2) : 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs">Min</div>
-                  <div className="font-semibold">{col.min !== null ? col.min.toFixed(2) : 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs">Max</div>
-                  <div className="font-semibold">{col.max !== null ? col.max.toFixed(2) : 'N/A'}</div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground font-semibold mb-2">
-                  {col.semantic_type === 'MULTIPLE_CHOICE' || col.semantic_type === 'TAGS' ? 'Top Tags/Options' : 'Top Categories'}
-                </div>
-                {col.top_categories?.map((cat: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center text-sm">
-                    <span className="truncate max-w-[150px]">{cat.name === 'None' ? '(Missing)' : cat.name}</span>
-                    <span className="font-semibold text-primary">{cat.count}</span>
-                  </div>
-                ))}
-                {(!col.top_categories || col.top_categories.length === 0) && (
-                   <span className="text-xs text-muted-foreground italic">No values to display.</span>
-                )}
-              </div>
-            )}
+            <TypeAwareEDA column={col} />
             
             <div className="mt-4 pt-4 border-t border-border flex justify-between text-xs">
               <span className="text-muted-foreground">Missing Values:</span>
