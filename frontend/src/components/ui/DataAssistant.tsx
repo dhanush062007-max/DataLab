@@ -55,6 +55,9 @@ export function DataAssistant({ datasetId }: DataAssistantProps) {
         body: JSON.stringify({ query: userMessage.content })
       });
 
+      if (res.status === 429) {
+        throw new Error("You've reached the rate limit! Please wait a minute before asking more questions.");
+      }
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
 
@@ -77,11 +80,15 @@ export function DataAssistant({ datasetId }: DataAssistantProps) {
           console.error("Failed to save assistant log (table might not exist yet):", dbErr);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMsg = error.message && error.message.includes("rate limit") 
+        ? error.message 
+        : "Sorry, I encountered an error while analyzing the data.";
+        
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: "assistant",
-        content: "Sorry, I encountered an error while analyzing the data."
+        content: errorMsg
       }]);
     } finally {
       setLoading(false);
