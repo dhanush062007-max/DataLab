@@ -92,15 +92,15 @@ export function DataAssistant({ datasetId }: DataAssistantProps) {
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 z-50 group"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 z-[100] group"
       >
-        <Sparkles className="w-6 h-6 group-hover:animate-pulse" />
+        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 group-hover:animate-pulse" />
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 md:w-96 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50" style={{ height: '500px', maxHeight: '80vh' }}>
+    <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-80 md:w-96 h-[100dvh] sm:h-[500px] sm:max-h-[80vh] bg-card sm:border border-border sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col z-[100]">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2">
