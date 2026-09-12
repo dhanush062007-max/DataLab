@@ -219,7 +219,6 @@ class MLEngine:
             "target_column": target_column,
             "feature_columns": safe_features,
             "algorithm": f"{base_algorithm}_{task_type}",
-            "task_type": task_type,
             "metrics": metrics,
             "feature_importances": feature_importances,
             "status": "completed"
