@@ -18,16 +18,25 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    if isinstance(exc, HTTPException):
-        # Let FastAPI handle HTTPExceptions normally so CORS headers apply
-        raise exc
-    print(f"GLOBAL EXCEPTION: {exc}")
-    traceback.print_exc()
     origin = request.headers.get("origin")
     headers = {}
     if origin:
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
+
+    if isinstance(exc, RateLimitExceeded):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+            headers=headers
+        )
+
+    if isinstance(exc, HTTPException):
+        # Let FastAPI handle HTTPExceptions normally so CORS headers apply
+        raise exc
+        
+    print(f"GLOBAL EXCEPTION: {exc}")
+    traceback.print_exc()
         
     return JSONResponse(
         status_code=500, 

@@ -12,7 +12,7 @@ class ChatRequest(BaseModel):
     query: str
 
 @router.post("/{dataset_id}/assistant/query")
-@limiter.limit("15/minute")
+@limiter.limit("5/minute")
 def process_natural_language_query(request: Request, dataset_id: str, chat_req: ChatRequest, supabase: Client = Depends(get_supabase_client)):
     try:
         # 1. Fetch active version, column metadata, and total row count
