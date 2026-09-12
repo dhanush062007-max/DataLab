@@ -17,6 +17,7 @@ const ChartBuilder = dynamic(() => import("@/components/visualization/ChartBuild
 const ReportGenerator = dynamic(() => import("@/components/reports/ReportGenerator").then(m => m.ReportGenerator), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const ExperimentLedger = dynamic(() => import("@/components/ml/ExperimentLedger").then(m => m.ExperimentLedger), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const NLPDashboard = dynamic(() => import("@/components/nlp/NLPDashboard").then(m => m.NLPDashboard), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+const DataAssistant = dynamic(() => import("@/components/ui/DataAssistant").then(m => m.DataAssistant), { ssr: false });
 import { BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, MessageSquare } from "lucide-react";
 
 function DatasetWorkspaceContent() {
@@ -1097,6 +1098,9 @@ function DatasetWorkspaceContent() {
         )}
 
       </div>
+      
+      {/* Floating Data Assistant */}
+      <DataAssistant datasetId={datasetId} />
     </div>
   );
 }
