@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.endpoints import eda, cleaning, ml, stats, visualization, profiling
+from app.api.endpoints import eda, cleaning, ml, stats, visualization, profiling, nlp
 
 api_router = APIRouter()
 
@@ -9,3 +9,4 @@ api_router.include_router(ml.router, prefix="/datasets", tags=["ml"])
 api_router.include_router(stats.router, prefix="/datasets", tags=["stats"])
 api_router.include_router(visualization.router, prefix="/datasets", tags=["visualization"])
 api_router.include_router(profiling.router, prefix="/datasets", tags=["profiling"])
+api_router.include_router(nlp.router, prefix="/datasets", tags=["nlp"])

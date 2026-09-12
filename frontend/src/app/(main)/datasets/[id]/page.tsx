@@ -16,7 +16,8 @@ const StatisticalTesting = dynamic(() => import("@/components/stats/StatisticalT
 const ChartBuilder = dynamic(() => import("@/components/visualization/ChartBuilder").then(m => m.ChartBuilder), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const ReportGenerator = dynamic(() => import("@/components/reports/ReportGenerator").then(m => m.ReportGenerator), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const ExperimentLedger = dynamic(() => import("@/components/ml/ExperimentLedger").then(m => m.ExperimentLedger), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
-import { BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical } from "lucide-react";
+const NLPDashboard = dynamic(() => import("@/components/nlp/NLPDashboard").then(m => m.NLPDashboard), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
+import { BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, MessageSquare } from "lucide-react";
 
 function DatasetWorkspaceContent() {
   const params = useParams();
@@ -544,6 +545,12 @@ function DatasetWorkspaceContent() {
           <BarChartIcon className="w-4 h-4" /> Visualization
         </button>
         <button 
+          onClick={() => setActiveTab("NLP")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "NLP" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <MessageSquare className="w-4 h-4" /> NLP
+        </button>
+        <button 
           onClick={() => setActiveTab("STATS")}
           className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "STATS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
@@ -642,6 +649,13 @@ function DatasetWorkspaceContent() {
         {activeTab === "EDA" && (
           <div className="overflow-y-auto pr-2 pb-4">
             <EDAOverview datasetId={datasetId} />
+          </div>
+        )}
+
+        {/* TAB: NLP */}
+        {activeTab === "NLP" && (
+          <div className="overflow-y-auto pr-2 pb-4">
+            <NLPDashboard datasetId={datasetId} columns={columns} />
           </div>
         )}
 
