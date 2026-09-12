@@ -52,14 +52,15 @@ class DataQualityEngine:
             
             # Numeric Outliers (IQR method)
             if sem_type in ["INTEGER", "DECIMAL"] or pd.api.types.is_numeric_dtype(series):
-                if len(series) > 10:
-                    q1 = series.quantile(0.25)
-                    q3 = series.quantile(0.75)
+                numeric_series = pd.to_numeric(series, errors='coerce').dropna()
+                if len(numeric_series) > 10:
+                    q1 = numeric_series.quantile(0.25)
+                    q3 = numeric_series.quantile(0.75)
                     iqr = q3 - q1
                     lower_bound = q1 - 1.5 * iqr
                     upper_bound = q3 + 1.5 * iqr
                     
-                    outliers = series[(series < lower_bound) | (series > upper_bound)]
+                    outliers = numeric_series[(numeric_series < lower_bound) | (numeric_series > upper_bound)]
                     if len(outliers) > 0:
                         outlier_count += len(outliers)
                         warnings.append({
