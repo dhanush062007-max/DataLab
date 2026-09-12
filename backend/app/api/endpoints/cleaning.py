@@ -4,12 +4,55 @@ from typing import Any, Dict
 from supabase import Client
 from app.core.supabase import get_supabase_client
 import pandas as pd
+from app.services.data_quality import DataQualityEngine
 
 router = APIRouter()
 
 class CleanRequest(BaseModel):
     operation: str
     parameters: Dict[str, Any] = {}
+
+@router.get("/{dataset_id}/quality")
+def get_dataset_quality(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+    # 1. Fetch current dataset records
+    d_res = supabase.table("datasets").select("active_version_id", "row_count").eq("id", dataset_id).single().execute()
+    if not d_res.data:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    active_version_id = d_res.data.get("active_version_id")
+    
+    # 2. Fetch columns
+    cols_res = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).execute()
+    column_metadata = cols_res.data or []
+    
+    # 3. Fetch sample of records to evaluate (up to 5000 for speed)
+    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).limit(5000)
+    if active_version_id:
+        query = query.eq("version_id", active_version_id)
+    else:
+        query = query.is_("version_id", "null")
+        
+    records_res = query.execute()
+    
+    if not records_res.data:
+        return {"score": 0, "warnings": ["Dataset is empty"], "breakdown": {}}
+        
+    df = pd.DataFrame([r["data"] for r in records_res.data])
+    
+    # 4. Compute quality score
+    quality_report = DataQualityEngine.compute_quality_score(df, column_metadata)
+    
+    # 5. Get smart suggestions
+    suggestions = {}
+    for col in column_metadata:
+        if col["column_name"] in df.columns:
+            sugg = DataQualityEngine.get_cleaning_suggestions(df, col["column_name"])
+            if sugg["suggestions"]:
+                suggestions[col["column_name"]] = sugg["suggestions"]
+                
+    quality_report["cleaning_suggestions"] = suggestions
+    
+    return quality_report
 
 @router.post("/{dataset_id}/clean")
 def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client = Depends(get_supabase_client)):
@@ -128,6 +171,16 @@ def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client = Dep
                         keep_mask.append(True)
                         
                 df_clean = df[keep_mask]
+                
+            elif request.operation == "NORMALIZE_TEXT":
+                target_col = request.parameters.get("column")
+                df_clean = df.copy()
+                if target_col in df_clean.columns:
+                    # Convert to string, lowercase, and strip
+                    df_clean[target_col] = df_clean[target_col].astype(str).str.lower().str.strip()
+                    # Replace "nan" or "none" strings back to None
+                    df_clean[target_col] = df_clean[target_col].replace({'nan': None, 'none': None, '': None})
+                    
             else:
                 raise ValueError(f"Unknown operation: {request.operation}")
             
@@ -173,6 +226,8 @@ def clean_dataset(dataset_id: str, request: CleanRequest, supabase: Client = Dep
         success_msg = f"Successfully removed {rows_deleted} row{'s' if rows_deleted != 1 else ''} with missing values."
     elif request.operation == "FILL_MEAN":
         success_msg = "Successfully filled missing values with the column mean."
+    elif request.operation == "NORMALIZE_TEXT":
+        success_msg = "Successfully normalized text (capitalization and spacing)."
     else:
         success_msg = "Dataset cleaned successfully."
         

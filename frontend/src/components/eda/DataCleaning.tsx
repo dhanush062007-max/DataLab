@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Database, Wand2, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DataQualityDashboard } from "./DataQualityDashboard";
 
 export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId: string, columns: any[], onCleanSuccess: () => void }) {
   const [operation, setOperation] = useState("DROP_NULLS");
@@ -71,7 +72,9 @@ export function DataCleaning({ datasetId, columns, onCleanSuccess }: { datasetId
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-8 max-w-5xl mx-auto pb-12">
+      <DataQualityDashboard datasetId={datasetId} />
+      
       <div className="bg-card border border-border rounded-xl shadow-sm p-8">
         
         <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
