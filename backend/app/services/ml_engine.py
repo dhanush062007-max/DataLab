@@ -67,6 +67,8 @@ class MLEngine:
         task_type = MLEngine._detect_task_type(target_column, column_metadata)
         safe_features = MLEngine._prevent_data_leakage(target_column, feature_columns, column_metadata)
         
+        # Ensure features actually exist in the dataframe
+        safe_features = [f for f in safe_features if f in df.columns]
         if not safe_features:
             raise ValueError("No valid features remaining after data leakage prevention.")
             
@@ -78,7 +80,7 @@ class MLEngine:
         if len(df_clean) < 10:
             raise ValueError("Not enough valid data rows to train a model.")
             
-        X = df_clean[safe_features]
+        X = df_clean[safe_features].copy()
         y = df_clean[target_column]
         
         if task_type == "CLASSIFICATION":
@@ -101,17 +103,26 @@ class MLEngine:
             
             if c_type in ["INTEGER", "DECIMAL", "NUMERIC"]:
                 numeric_features.append(col)
+                # Defensively coerce to numeric to avoid ValueError during scaling
+                X[col] = pd.to_numeric(X[col], errors='coerce')
             else:
                 categorical_features.append(col)
+                # Defensively cast to string to avoid mixed-type errors
+                X[col] = X[col].astype(str)
+                
+        # Fill missing values before pipeline to avoid typing issues in older sklearn versions
+        if numeric_features:
+            X[numeric_features] = X[numeric_features].fillna(X[numeric_features].median(numeric_only=True).fillna(0))
+        if categorical_features:
+            X[categorical_features] = X[categorical_features].fillna("missing")
                 
         numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler())
         ])
         
         categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False)) # sparse_output=False to allow SHAP later if needed
+            # Some sklearn versions require sparse=False, others sparse_output=False. We can use a trick or just fallback.
+            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
         ])
         
         transformers = []
