@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { BrainCircuit, Play, CheckCircle2, AlertCircle, BarChart3, TrendingUp, Settings, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeaturePipelinePreview } from "./FeaturePipelinePreview";
 
 interface ModelTrainerProps {
   datasetId: string;
@@ -13,7 +14,7 @@ interface ModelTrainerProps {
 export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
   const [targetColumn, setTargetColumn] = useState<string>("");
   const [featureColumns, setFeatureColumns] = useState<string[]>([]);
-  const [algorithm, setAlgorithm] = useState<string>("RANDOM_FOREST_REGRESSOR");
+  const [algorithm, setAlgorithm] = useState<string>("RANDOM_FOREST");
   const [training, setTraining] = useState(false);
   const [trainingSlow, setTrainingSlow] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -164,10 +165,8 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
                 value={algorithm}
                 onChange={e => setAlgorithm(e.target.value)}
               >
-                <option value="RANDOM_FOREST_REGRESSOR">Random Forest (Regression)</option>
-                <option value="RANDOM_FOREST_CLASSIFIER">Random Forest (Classification)</option>
-                <option value="LINEAR_REGRESSION">Linear Regression</option>
-                <option value="LOGISTIC_REGRESSION">Logistic Regression</option>
+                <option value="RANDOM_FOREST">Random Forest (Auto-detect Task)</option>
+                <option value="LINEAR_MODEL">Linear Model (Auto-detect Task)</option>
               </select>
             </div>
 
@@ -250,8 +249,11 @@ export function ModelTrainer({ datasetId, columns }: ModelTrainerProps) {
             </div>
             <h3 className="text-xl font-bold mb-2">Ready to Train</h3>
             <p className="text-muted-foreground max-w-md">
-              DataLab's NLP pipeline will automatically apply TF-IDF to Text columns, One-Hot Encoding to Categories, and standard scaling to Numerics.
+              DataLab's NLP pipeline will automatically apply transformations based on semantic types.
             </p>
+            <div className="w-full mt-4 text-left">
+              <FeaturePipelinePreview columns={columns} featureColumns={featureColumns} />
+            </div>
           </div>
         ) : training ? (
           <div className="h-full min-h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 shadow-sm">
