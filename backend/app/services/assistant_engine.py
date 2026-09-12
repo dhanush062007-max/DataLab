@@ -106,7 +106,7 @@ Instructions:
         if not target_col:
             if is_count and "row" in query or "record" in query:
                 return f"There are {len(df):,} rows in this dataset."
-            return "I couldn't identify a specific column in your question. Please mention the exact column name, or add your GEMINI_API_KEY to the backend to enable the smart AI Assistant!"
+            return "I couldn't identify a specific column in your question. Please mention the exact column name."
             
         # 3. Execution
         try:
