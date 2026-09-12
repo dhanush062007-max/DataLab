@@ -63,6 +63,20 @@ export function DataAssistant({ datasetId }: DataAssistantProps) {
         role: "assistant",
         content: data.response
       }]);
+
+      // Save to Supabase for AI training/logging
+      if (authData.session?.user) {
+        try {
+          await supabase.from("assistant_logs").insert({
+            dataset_id: datasetId,
+            user_id: authData.session.user.id,
+            query: userMessage.content,
+            response: data.response
+          });
+        } catch (dbErr) {
+          console.error("Failed to save assistant log (table might not exist yet):", dbErr);
+        }
+      }
     } catch (error) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),

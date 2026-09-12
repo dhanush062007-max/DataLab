@@ -132,6 +132,16 @@ CREATE TABLE public.ml_experiments (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
+-- 9. Assistant Logs Table (For AI Training)
+CREATE TABLE public.assistant_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dataset_id UUID NOT NULL REFERENCES public.datasets(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    query TEXT NOT NULL,
+    response TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Row Level Security (RLS) Setup
 
 -- Enable RLS on all tables
@@ -143,6 +153,7 @@ ALTER TABLE public.dataset_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.collection_forms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ml_experiments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
 CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
@@ -182,3 +193,9 @@ CREATE POLICY "Users can access their own ML experiments" ON public.ml_experimen
 FOR ALL USING (dataset_id IN (SELECT id FROM public.datasets WHERE owner_id = auth.uid()));
 CREATE POLICY "Users can access experiments for their datasets" ON public.ml_experiments 
 FOR ALL USING (dataset_id IN (SELECT id FROM public.datasets WHERE owner_id = auth.uid()));
+
+-- Assistant Logs Policies
+CREATE POLICY "Users can insert their own assistant logs" ON public.assistant_logs 
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view their own assistant logs" ON public.assistant_logs 
+FOR SELECT USING (auth.uid() = user_id);
