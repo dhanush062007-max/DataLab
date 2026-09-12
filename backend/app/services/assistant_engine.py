@@ -37,6 +37,25 @@ class AssistantEngine:
                     for idx, h in enumerate(history):
                         history_text += f"User ({idx+1}): {h['query']}\nAI ({idx+1}): {h['response']}\n\n"
                 
+                # Naive Semantic Search: Find specific rows relevant to the user query
+                import re
+                words = re.findall(r'\b\w+\b', query.lower())
+                stopwords = {"in", "which", "does", "comes", "what", "is", "the", "for", "a", "an", "of", "to", "and"}
+                search_terms = [w for w in words if len(w) >= 3 and w not in stopwords]
+                
+                relevant_data = ""
+                if search_terms:
+                    df_string = df.astype(str).apply(lambda x: x.str.lower())
+                    mask = pd.Series(False, index=df.index)
+                    for term in search_terms:
+                        for col in df_string.columns:
+                            mask = mask | df_string[col].str.contains(term, regex=False)
+                    
+                    matched_rows = df[mask].head(5)
+                    if not matched_rows.empty:
+                        relevant_data = "Relevant Data Snippets (Found based on your query):\n"
+                        relevant_data += matched_rows.to_string() + "\n"
+                
                 prompt = f"""
 You are DataLab Assistant, an expert AI data analyst. 
 The user is asking a question about their current dataset. Answer the question based ONLY on the provided context.
@@ -52,6 +71,8 @@ Statistical Summary:
 
 Sample Data (First 3 rows):
 {head_sample}
+
+{relevant_data}
 
 {history_text}
 
