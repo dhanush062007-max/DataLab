@@ -88,11 +88,44 @@ export function DataAssistant({ datasetId }: DataAssistantProps) {
     }
   };
 
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const isDragged = useRef(false);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    isDragged.current = false;
+    dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isDragging) {
+      isDragged.current = true;
+      setOffset({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y
+      });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if (!isDragged.current) {
+      setIsOpen(true);
+    }
+  };
+
   if (!isOpen) {
     return (
       <button 
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 z-[100] group"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        style={{ transform: `translate(${offset.x}px, ${offset.y}px)`, touchAction: 'none' }}
+        className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl flex items-center justify-center z-[100] group cursor-grab active:cursor-grabbing"
       >
         <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 group-hover:animate-pulse" />
       </button>
