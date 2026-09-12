@@ -14,7 +14,8 @@ import {
   FlaskConical, 
   FileText, 
   Settings,
-  LogOut
+  LogOut,
+  MessageSquare
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,7 @@ export const mainNavItems = [
   { name: "Explore", href: "/explore", icon: Compass },
   { name: "Visualization", href: "/visualization", icon: BarChart3 },
   { name: "Statistics", href: "/statistics", icon: Calculator },
+  { name: "NLP", href: "/nlp", icon: MessageSquare },
   { name: "Machine Learning", href: "/ml", icon: BrainCircuit },
   { name: "Experiments", href: "/experiments", icon: FlaskConical },
   { name: "Reports", href: "/reports", icon: FileText },
