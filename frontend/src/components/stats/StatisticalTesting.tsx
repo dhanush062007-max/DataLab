@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Play, AlertCircle, BarChart3, Settings, TrendingUp, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AutoInsights } from "./AutoInsights";
 
 interface StatisticalTestingProps {
   datasetId: string;
@@ -106,7 +107,10 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
   const catColumns = columns.filter(c => c.data_type === "VARCHAR" || c.data_type === "BOOLEAN");
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      <AutoInsights datasetId={datasetId} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       {/* Left Column: Configuration */}
       <div className="lg:col-span-1 space-y-6">
@@ -323,6 +327,7 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
         )}
       </div>
 
+    </div>
     </div>
   );
 }

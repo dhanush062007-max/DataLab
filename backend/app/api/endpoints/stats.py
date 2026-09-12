@@ -220,3 +220,40 @@ def get_stats(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
     except Exception as e:
         print(f"Error fetching stats: {e}")
         return []
+
+from app.services.stats_engine import StatsEngine
+
+@router.get("/{dataset_id}/stats/insights")
+def get_auto_insights(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+    # 1. Fetch active version
+    d_res = supabase.table("datasets").select("active_version_id").eq("id", dataset_id).single().execute()
+    if not d_res.data:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    active_version_id = d_res.data.get("active_version_id")
+    
+    # 2. Fetch column metadata
+    c_res = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).execute()
+    if not c_res.data:
+        return []
+    column_metadata = c_res.data
+
+    # 3. Fetch sample records (limit to 2000 for fast insight generation)
+    query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).limit(2000)
+    if active_version_id:
+        query = query.eq("version_id", active_version_id)
+    else:
+        query = query.is_("version_id", "null")
+        
+    r_res = query.execute()
+    if not r_res.data:
+        return []
+        
+    df = pd.DataFrame([r["data"] for r in r_res.data])
+    
+    try:
+        insights = StatsEngine.auto_discover_insights(df, column_metadata, max_insights=6)
+        return insights
+    except Exception as e:
+        print(f"Error generating insights: {e}")
+        return []
