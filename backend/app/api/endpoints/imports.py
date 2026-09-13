@@ -104,20 +104,7 @@ def import_dataset_from_url(
         # Convert NaN to None for JSON serialization
         df = df.replace({float('nan'): None})
 
-        # 4. Insert into database in chunks
-        records = df.to_dict(orient="records")
-        chunk_size = 500
-        
-        for i in range(0, len(records), chunk_size):
-            chunk = records[i:i + chunk_size]
-            payload = [{"dataset_id": dataset_id, "data": row, "version_id": None} for row in chunk]
-            supabase.table("dataset_records").insert(payload).execute()
-
-        # Update dataset row count
-        row_count = len(records)
-        supabase.table("datasets").update({"row_count": row_count}).eq("id", dataset_id).execute()
-
-        # 5. Create initial version history record
+        # 4. Create initial version history record FIRST to avoid massive UPDATE
         v_res = supabase.table("dataset_versions").insert({
             "dataset_id": dataset_id,
             "operation": "Initial API Import",
@@ -126,11 +113,21 @@ def import_dataset_from_url(
         }).execute()
         
         version_id = v_res.data[0]["id"] if v_res.data else None
-        
         if version_id:
             supabase.table("datasets").update({"active_version_id": version_id}).eq("id", dataset_id).execute()
-            # Link records to this version
-            supabase.table("dataset_records").update({"version_id": version_id}).eq("dataset_id", dataset_id).is_("version_id", "null").execute()
+
+        # 5. Insert into database in chunks
+        records = df.to_dict(orient="records")
+        chunk_size = 500
+        
+        for i in range(0, len(records), chunk_size):
+            chunk = records[i:i + chunk_size]
+            payload = [{"dataset_id": dataset_id, "data": row, "version_id": version_id} for row in chunk]
+            supabase.table("dataset_records").insert(payload).execute()
+
+        # Update dataset row count
+        row_count = len(records)
+        supabase.table("datasets").update({"row_count": row_count}).eq("id", dataset_id).execute()
 
         return {"message": "Successfully imported dataset", "rows_imported": row_count}
 
