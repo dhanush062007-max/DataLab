@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download, Loader2 } from "lucide-react";
+import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download, Loader2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Papa from "papaparse";
 import Link from "next/link";
