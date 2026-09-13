@@ -311,7 +311,7 @@ function DatasetWorkspaceContent() {
           setUploadProgress(60);
 
           // We will batch insert to handle massive CSVs without timing out
-          const BATCH_SIZE = 5000;
+          const BATCH_SIZE = 500;
           let totalInserted = 0;
 
           for (let i = 0; i < parsedData.length; i += BATCH_SIZE) {
