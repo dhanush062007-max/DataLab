@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download, Loader2, History } from "lucide-react";
+import { Database, Upload, FileType, Columns, CheckCircle2, AlertCircle, Plus, Search, Grid, MoreVertical, Link as LinkIcon, Copy, Eye, PauseCircle, PlayCircle, Wand2, Compass, Download, Loader2, History as HistoryIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Papa from "papaparse";
 import Link from "next/link";
@@ -580,7 +580,7 @@ function DatasetWorkspaceContent() {
           onClick={() => setActiveTab("VERSIONS")}
           className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "VERSIONS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <History className="w-4 h-4" /> Versions
+          <HistoryIcon className="w-4 h-4" /> Versions
         </button>
       </div>
 
