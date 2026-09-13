@@ -183,8 +183,13 @@ def run_statistical_test(request: Request, dataset_id: str, stats_req: StatsRequ
 
         interpretation = get_interpretation(p_val, stats_req.test_type, req_a, req_b, req_g)
 
+        # Get owner_id from dataset to attach to test
+        ds_res = supabase.table("datasets").select("owner_id").eq("id", dataset_id).execute()
+        owner_id = ds_res.data[0].get("owner_id") if ds_res.data else None
+
         test_data = {
             "dataset_id": dataset_id,
+            "owner_id": owner_id,
             "test_type": stats_req.test_type,
             "variable_a": req_a,
             "variable_b": req_b,
