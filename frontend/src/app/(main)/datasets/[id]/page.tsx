@@ -275,32 +275,50 @@ function DatasetWorkspaceContent() {
           
           if (importAllColumns) {
             const unmappedHeaders = csvHeaders.filter(h => !expectedHeaders.includes(h));
-            if (unmappedHeaders.length > 0) {
-              const newCols = unmappedHeaders.map((h, i) => ({
-                id: `auto_${Date.now()}_${i}`,
-                column_name: h,
-                display_name: h,
-                data_type: "TEXT",
-                semantic_type: "UNKNOWN",
-                ml_role: "FEATURE",
-                encoding_type: "NONE",
-                required: false
-              }));
+              const inferType = (val: any) => {
+                if (val === null || val === undefined || val === "") return "TEXT";
+                if (typeof val === "boolean") return "BOOLEAN";
+                if (!isNaN(Number(val))) {
+                  return Number.isInteger(Number(val)) ? "INTEGER" : "DECIMAL";
+                }
+                const lower = String(val).toLowerCase();
+                if (lower === "true" || lower === "false") return "BOOLEAN";
+                return "TEXT";
+              };
+              
+              const newCols = unmappedHeaders.map((h, i) => {
+                const sampleVal = parsedData[0][h];
+                const inferredType = inferType(sampleVal);
+                return {
+                  id: `auto_${Date.now()}_${i}`,
+                  column_name: h,
+                  display_name: h,
+                  data_type: inferredType,
+                  semantic_type: inferredType === "TEXT" ? "UNKNOWN" : inferredType,
+                  ml_role: "FEATURE",
+                  encoding_type: "NONE",
+                  required: false
+                };
+              });
               
               activeColumns = [...columns, ...newCols];
               
               // Update database schema
-              const dbColumnsToInsert = unmappedHeaders.map((h, i) => ({
-                dataset_id: datasetId,
-                column_name: h,
-                display_name: h,
-                data_type: "TEXT",
-                semantic_type: "UNKNOWN",
-                ml_role: "FEATURE",
-                encoding_type: "NONE",
-                required: false,
-                position: columns.length + i
-              }));
+              const dbColumnsToInsert = unmappedHeaders.map((h, i) => {
+                const sampleVal = parsedData[0][h];
+                const inferredType = inferType(sampleVal);
+                return {
+                  dataset_id: datasetId,
+                  column_name: h,
+                  display_name: h,
+                  data_type: inferredType,
+                  semantic_type: inferredType === "TEXT" ? "UNKNOWN" : inferredType,
+                  ml_role: "FEATURE",
+                  encoding_type: "NONE",
+                  required: false,
+                  position: columns.length + i
+                };
+              });
               await supabase.from("dataset_columns").insert(dbColumnsToInsert);
               
               // Also update local state so the table renders them immediately

@@ -80,13 +80,31 @@ def import_dataset_from_url(
                 import time
                 timestamp = int(time.time() * 1000)
                 new_cols = []
+                import pandas as pd
+                
                 for i, col in enumerate(unmapped):
+                    dtype = "TEXT"
+                    semantic = "UNKNOWN"
+                    
+                    if pd.api.types.is_integer_dtype(df[col]):
+                        dtype = "INTEGER"
+                        semantic = "INTEGER"
+                    elif pd.api.types.is_float_dtype(df[col]):
+                        dtype = "DECIMAL"
+                        semantic = "DECIMAL"
+                    elif pd.api.types.is_bool_dtype(df[col]):
+                        dtype = "BOOLEAN"
+                        semantic = "BOOLEAN"
+                    elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                        dtype = "DATETIME"
+                        semantic = "DATETIME"
+
                     new_cols.append({
                         "dataset_id": dataset_id,
                         "column_name": col,
                         "display_name": col,
-                        "data_type": "TEXT",
-                        "semantic_type": "UNKNOWN",
+                        "data_type": dtype,
+                        "semantic_type": semantic,
                         "ml_role": "FEATURE",
                         "encoding_type": "NONE",
                         "required": False,
