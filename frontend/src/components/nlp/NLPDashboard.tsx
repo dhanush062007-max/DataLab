@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, MessageSquare, Tag, Hash, Smile, Frown, Meh, BarChart2 } from "lucide-react";
+import { Loader2, MessageSquare, Tag, Hash, Smile, Frown, Meh, BarChart2, Search, Zap } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Cell as PieCell } from "recharts";
 
 interface NLPDashboardProps {
@@ -11,9 +11,16 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
   const textColumns = columns.filter(c => c.semantic_type === 'LONG_TEXT' || c.semantic_type === 'SHORT_TEXT' || c.data_type === 'TEXT');
   const [selectedColumn, setSelectedColumn] = useState<string>(textColumns.length > 0 ? textColumns[0].column_name : "");
   
+  const [activeTab, setActiveTab] = useState<'analysis' | 'search'>('analysis');
+  
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedColumn) return;
@@ -49,6 +56,41 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
     });
   }, [selectedColumn, datasetId]);
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !selectedColumn) return;
+
+    setSearchLoading(true);
+    setSearchError(null);
+
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/nlp/search`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          query: searchQuery,
+          column: selectedColumn,
+          top_k: 10
+        })
+      });
+
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch (err: any) {
+      setSearchError(err.message);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   if (textColumns.length === 0) {
     return (
       <div className="p-8 text-center bg-card border border-border rounded-xl">
@@ -74,38 +116,114 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
             <MessageSquare className="w-5 h-5 text-indigo-500" />
             Natural Language Processing
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">Extract topics and sentiments from unstructured text.</p>
+          <p className="text-sm text-muted-foreground mt-1">Extract topics, sentiments, and perform semantic search.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
-          <label className="text-sm font-semibold whitespace-nowrap">Target Column:</label>
-          <select 
-            value={selectedColumn}
-            onChange={(e) => setSelectedColumn(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-input bg-background text-sm w-full sm:w-auto min-w-[200px]"
-          >
-            {textColumns.map(c => (
-              <option key={c.id} value={c.column_name}>{c.display_name} ({c.semantic_type === 'UNKNOWN' ? c.data_type : c.semantic_type})</option>
-            ))}
-          </select>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full md:w-auto">
+          {/* Tabs */}
+          <div className="flex bg-muted rounded-lg p-1">
+            <button 
+              onClick={() => setActiveTab('analysis')}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${activeTab === 'analysis' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Analysis
+            </button>
+            <button 
+              onClick={() => setActiveTab('search')}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1 ${activeTab === 'search' ? 'bg-background shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Search className="w-3.5 h-3.5" /> Semantic Search
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold whitespace-nowrap">Target Column:</label>
+            <select 
+              value={selectedColumn}
+              onChange={(e) => setSelectedColumn(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-input bg-background text-sm w-full sm:w-auto min-w-[150px]"
+            >
+              {textColumns.map(c => (
+                <option key={c.id} value={c.column_name}>{c.display_name} ({c.semantic_type === 'UNKNOWN' ? c.data_type : c.semantic_type})</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {loading && (
-        <div className="h-64 flex flex-col items-center justify-center text-muted-foreground bg-card border border-border rounded-xl">
-          <Loader2 className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
-          <p>Running Topic Modeling and Sentiment Analysis...</p>
-        </div>
-      )}
+      {activeTab === 'search' ? (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-6 shadow-sm">
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder={`Search by meaning or concept in '${selectedColumn}'...`}
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-background/80 backdrop-blur-sm shadow-sm text-foreground focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={searchLoading || !searchQuery.trim()}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {searchLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                Search
+              </button>
+            </form>
+          </div>
 
-      {error && (
-        <div className="p-6 bg-red-50 text-red-600 rounded-xl border border-red-200">
-          <h3 className="font-bold">Analysis Failed</h3>
-          <p className="text-sm mt-1">{error}</p>
-        </div>
-      )}
+          {searchError && (
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-200">
+              {searchError}
+            </div>
+          )}
 
-      {analysis && !loading && (
+          {searchResults.length > 0 && (
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-border bg-muted/20">
+                <h3 className="font-bold flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-indigo-500" /> Top {searchResults.length} Semantic Matches
+                </h3>
+              </div>
+              <div className="divide-y divide-border">
+                {searchResults.map((res, i) => (
+                  <div key={res.record_id || i} className="p-4 hover:bg-muted/10 transition-colors flex gap-4">
+                    <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                      #{(i + 1)}
+                    </div>
+                    <div>
+                      <p className="text-sm">{res.text}</p>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Match Score: {(res.similarity_score * 100).toFixed(1)}% | Record ID: {res.record_id}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {loading && (
+            <div className="h-64 flex flex-col items-center justify-center text-muted-foreground bg-card border border-border rounded-xl">
+              <Loader2 className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
+              <p>Running Topic Modeling and Sentiment Analysis...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-6 bg-red-50 text-red-600 rounded-xl border border-red-200">
+              <h3 className="font-bold">Analysis Failed</h3>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          )}
+
+          {analysis && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {/* Sentiment Analysis */}
@@ -223,6 +341,8 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
           </div>
           
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -83,7 +83,7 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 {isClassification ? (
                   <>
                     <div className="border border-border rounded-lg p-2 sm:p-3 text-center bg-card min-w-0">
@@ -108,6 +108,34 @@ export function ExperimentLedger({ datasetId }: ExperimentLedgerProps) {
                   </>
                 )}
               </div>
+
+              {/* Explainable AI / Feature Importances */}
+              {exp.feature_importances && Object.keys(exp.feature_importances).length > 0 && (
+                <div className="mt-auto border-t border-border pt-4">
+                  <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    <BrainCircuit className="w-3 h-3 text-primary" /> Top Drivers (SHAP)
+                  </div>
+                  <div className="space-y-2">
+                    {Object.entries(exp.feature_importances)
+                      .sort(([, a], [, b]) => (b as number) - (a as number))
+                      .slice(0, 3)
+                      .map(([feature, importance]) => (
+                        <div key={feature}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="truncate max-w-[150px]">{feature}</span>
+                            <span className="text-muted-foreground font-mono">{((importance as number) * 100).toFixed(1)}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary/60 rounded-full"
+                              style={{ width: `${(importance as number) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

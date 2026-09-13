@@ -85,12 +85,74 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
       setRunning(false);
       setRunningSlow(false);
     }
-  };
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+
+  // Fetch recommendations on load
+  import { useEffect } from "react";
+  useEffect(() => {
+    async function fetchRecs() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/datasets/${datasetId}/visualize/recommendations`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendations(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch chart recommendations", e);
+      }
+    }
+    fetchRecs();
+  }, [datasetId]);
 
   const numericColumns = columns.filter(c => ['INTEGER', 'DECIMAL'].includes(c.semantic_type || c.data_type));
 
+  const applyRecommendation = (rec: any) => {
+    setChartType(rec.chart_type);
+    setXAxis(rec.x_axis);
+    setYAxis(rec.y_axis || "");
+    setAggregation(rec.aggregation || "NONE");
+    // Optionally trigger generate immediately (we would need to refactor handleGenerate or just rely on the user to click play)
+  };
+
+  import { Sparkles } from "lucide-react";
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      
+      {/* Smart Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-6 shadow-sm">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+            <Sparkles className="w-5 h-5" /> Smart Recommendations
+          </h3>
+          <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+            {recommendations.map((rec, i) => (
+              <button 
+                key={i} 
+                onClick={() => applyRecommendation(rec)}
+                className="shrink-0 w-64 text-left bg-card border border-border hover:border-indigo-300 dark:hover:border-indigo-700 rounded-lg p-4 transition-all hover:shadow-md group"
+              >
+                <div className="flex items-center gap-2 mb-2 text-indigo-600 dark:text-indigo-400">
+                  {rec.chart_type === 'BAR' ? <BarChart3 className="w-5 h-5" /> : rec.chart_type === 'LINE' ? <LineIcon className="w-5 h-5" /> : <ScatterIcon className="w-5 h-5" />}
+                  <span className="font-bold text-sm">{rec.chart_type}</span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{rec.description}</p>
+                <div className="text-[10px] uppercase font-bold text-muted-foreground mt-3 flex gap-2">
+                  <span className="bg-muted px-2 py-0.5 rounded">X: {rec.x_axis}</span>
+                  {rec.y_axis && <span className="bg-muted px-2 py-0.5 rounded">Y: {rec.y_axis}</span>}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       {/* Left Column: Configuration */}
       <div className="lg:col-span-1 space-y-6">
@@ -305,6 +367,7 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
         )}
       </div>
 
+      </div>
     </div>
   );
 }
