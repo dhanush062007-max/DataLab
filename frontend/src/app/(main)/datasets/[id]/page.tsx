@@ -290,9 +290,21 @@ function DatasetWorkspaceContent() {
               activeColumns = [...columns, ...newCols];
               
               // Update database schema
-              await supabase.from("datasets").update({ column_metadata: activeColumns }).eq("id", datasetId);
+              const dbColumnsToInsert = unmappedHeaders.map((h, i) => ({
+                dataset_id: datasetId,
+                column_name: h,
+                display_name: h,
+                data_type: "TEXT",
+                semantic_type: "UNKNOWN",
+                ml_role: "FEATURE",
+                encoding_type: "NONE",
+                required: false,
+                position: columns.length + i
+              }));
+              await supabase.from("dataset_columns").insert(dbColumnsToInsert);
+              
               // Also update local state so the table renders them immediately
-              setColumns(activeColumns);
+              setColumns(activeColumns as any);
             }
           }
           

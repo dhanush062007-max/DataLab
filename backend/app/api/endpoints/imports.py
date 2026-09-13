@@ -82,19 +82,20 @@ def import_dataset_from_url(
                 new_cols = []
                 for i, col in enumerate(unmapped):
                     new_cols.append({
-                        "id": f"auto_{timestamp}_{i}",
+                        "dataset_id": dataset_id,
                         "column_name": col,
                         "display_name": col,
                         "data_type": "TEXT",
                         "semantic_type": "UNKNOWN",
                         "ml_role": "FEATURE",
                         "encoding_type": "NONE",
-                        "required": False
+                        "required": False,
+                        "position": len(column_metadata) + i
                     })
                 column_metadata.extend(new_cols)
                 expected_cols.extend(unmapped)
-                # Update database
-                supabase.table("datasets").update({"column_metadata": column_metadata}).eq("id", dataset_id).execute()
+                # Update database dataset_columns
+                supabase.table("dataset_columns").insert(new_cols).execute()
 
         # Filter df to only schema columns that exist
         valid_cols = [c for c in expected_cols if c in df.columns]

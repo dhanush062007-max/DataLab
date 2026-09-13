@@ -140,14 +140,14 @@ export default function NewDatasetPage() {
     setDraggedColIndex(null);
   };
 
-  const handleCreateDataset = async () => {
+  const handleCreateDataset = async (skipSchema: boolean = false) => {
     if (!name) {
       setError("Dataset name is required.");
       setStep(1);
       return;
     }
 
-    if (columns.some(c => !c.column_name.trim())) {
+    if (!skipSchema && columns.some(c => !c.column_name.trim())) {
       setError("All columns must have a name.");
       return;
     }
@@ -164,32 +164,34 @@ export default function NewDatasetPage() {
           description,
           source_type: sourceType,
           status: "READY",
-          column_count: columns.length
+          column_count: skipSchema ? 0 : columns.length
         })
         .select()
         .single();
 
       if (datasetError) throw datasetError;
 
-      const columnsToInsert = columns.map((col, index) => ({
-        dataset_id: datasetData.id,
-        column_name: col.column_name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-        display_name: col.column_name,
-        data_type: col.data_type,
-        semantic_type: col.semantic_type,
-        ml_role: col.ml_role,
-        encoding_type: col.encoding_type,
-        required: col.required,
-        options: col.options ? col.options.filter(o => o.trim() !== '') : [],
-        validation_rules: {},
-        position: index
-      }));
+      if (!skipSchema) {
+        const columnsToInsert = columns.map((col, index) => ({
+          dataset_id: datasetData.id,
+          column_name: col.column_name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+          display_name: col.column_name,
+          data_type: col.data_type,
+          semantic_type: col.semantic_type,
+          ml_role: col.ml_role,
+          encoding_type: col.encoding_type,
+          required: col.required,
+          options: col.options ? col.options.filter(o => o.trim() !== '') : [],
+          validation_rules: {},
+          position: index
+        }));
 
-      const { error: colsError } = await supabase
-        .from("dataset_columns")
-        .insert(columnsToInsert);
+        const { error: colsError } = await supabase
+          .from("dataset_columns")
+          .insert(columnsToInsert);
 
-      if (colsError) throw colsError;
+        if (colsError) throw colsError;
+      }
 
       if (sourceType === "FORM") {
         const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -312,10 +314,16 @@ export default function NewDatasetPage() {
             </div>
 
             <div className="pt-4 flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!name}>
-                Continue to Schema
-                <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-              </Button>
+              {sourceType === "CSV" || sourceType === "API" ? (
+                <Button onClick={() => handleCreateDataset(true)} disabled={!name || loading}>
+                  {loading ? "Creating..." : "Create Dataset"}
+                </Button>
+              ) : (
+                <Button onClick={() => setStep(2)} disabled={!name}>
+                  Continue to Schema
+                  <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -454,7 +462,7 @@ export default function NewDatasetPage() {
               <Button variant="ghost" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button onClick={handleCreateDataset} disabled={loading} className="px-8">
+              <Button onClick={() => handleCreateDataset(false)} disabled={loading} className="px-8">
                 {loading ? "Creating..." : "Create Dataset"}
               </Button>
             </div>
