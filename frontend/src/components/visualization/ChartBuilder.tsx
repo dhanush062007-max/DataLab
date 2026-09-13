@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Play, AlertCircle, BarChart3, Settings, PieChart, ScatterChart as ScatterIcon, LineChart as LineIcon } from "lucide-react";
+import { Play, AlertCircle, BarChart3, Settings, PieChart, ScatterChart as ScatterIcon, LineChart as LineIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Legend,
@@ -88,7 +88,6 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
 
   // Fetch recommendations on load
-  import { useEffect } from "react";
   useEffect(() => {
     async function fetchRecs() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -118,8 +117,6 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
     setAggregation(rec.aggregation || "NONE");
     // Optionally trigger generate immediately (we would need to refactor handleGenerate or just rely on the user to click play)
   };
-
-  import { Sparkles } from "lucide-react";
 
   return (
     <div className="space-y-6">
