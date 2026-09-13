@@ -8,3 +8,4 @@ scikit-learn
 scipy
 slowapi
 google-genai
+sentence-transformers

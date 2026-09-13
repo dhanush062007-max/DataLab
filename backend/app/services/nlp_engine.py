@@ -113,3 +113,54 @@ class NLPEngine:
             "sentiment": NLPEngine.analyze_sentiment_distribution(series),
             "topics": NLPEngine.extract_topics(series, n_topics=4)
         }
+
+    @staticmethod
+    def semantic_search(df: pd.DataFrame, text_column: str, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+        """
+        Performs semantic search using sentence-transformers (all-MiniLM-L6-v2).
+        Lazy loads the model to prevent startup crashes if not installed.
+        """
+        try:
+            from sentence_transformers import SentenceTransformer, util
+            import torch
+        except ImportError:
+            raise ImportError("sentence-transformers is not installed. Please run `pip install sentence-transformers`.")
+
+        if text_column not in df.columns:
+            raise ValueError(f"Column '{text_column}' not found in dataset.")
+
+        # Keep track of original indices and clean text
+        df_valid = df.dropna(subset=[text_column]).copy()
+        if df_valid.empty:
+            return []
+
+        texts = df_valid[text_column].astype(str).tolist()
+
+        # Load model (downloads on first run, caches locally in ~/.cache/huggingface)
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+
+        # Encode query and corpus
+        query_embedding = model.encode(query, convert_to_tensor=True)
+        corpus_embeddings = model.encode(texts, convert_to_tensor=True)
+
+        # Compute cosine similarities
+        cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
+        
+        # Get top K results
+        top_results = torch.topk(cos_scores, k=min(top_k, len(texts)))
+        
+        results = []
+        for score, idx in zip(top_results[0], top_results[1]):
+            score_val = score.item()
+            idx_val = idx.item()
+            
+            # Reconstruct the original row data
+            row_data = df_valid.iloc[idx_val].to_dict()
+            
+            results.append({
+                "score": round(score_val, 4),
+                "matched_text": texts[idx_val],
+                "row_data": row_data
+            })
+            
+        return results

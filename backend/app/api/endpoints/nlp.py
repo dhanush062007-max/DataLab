@@ -46,3 +46,53 @@ def get_nlp_analysis(dataset_id: str, column: str, supabase: Client = Depends(ge
         return report
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+
+class SemanticSearchRequest(BaseModel):
+    column: str
+    query: str
+    top_k: int = 10
+
+@router.post("/{dataset_id}/nlp/search")
+def search_dataset_semantically(dataset_id: str, request: SemanticSearchRequest, supabase: Client = Depends(get_supabase_client)):
+    # 1. Fetch current dataset records
+    d_res = supabase.table("datasets").select("active_version_id", "row_count").eq("id", dataset_id).single().execute()
+    if not d_res.data:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    active_version_id = d_res.data.get("active_version_id")
+    
+    # 2. Check if column exists
+    cols_res = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).eq("column_name", request.column).execute()
+    if not cols_res.data:
+        raise HTTPException(status_code=404, detail=f"Column {request.column} not found in dataset")
+        
+    col_meta = cols_res.data[0]
+    if col_meta.get("semantic_type") not in ["LONG_TEXT", "SHORT_TEXT"] and col_meta.get("data_type") not in ["TEXT", "VARCHAR"]:
+        raise HTTPException(status_code=400, detail=f"Column {request.column} is not a valid text column for Semantic Search.")
+        
+    # 3. Fetch records
+    db_query = supabase.table("dataset_records").select("data").eq("dataset_id", dataset_id).limit(5000)
+    if active_version_id:
+        db_query = db_query.eq("version_id", active_version_id)
+    else:
+        db_query = db_query.is_("version_id", "null")
+        
+    records_res = db_query.execute()
+    if not records_res.data:
+        raise HTTPException(status_code=400, detail="Dataset is empty")
+        
+    df = pd.DataFrame([r["data"] for r in records_res.data])
+    
+    if request.column not in df.columns:
+        raise HTTPException(status_code=400, detail=f"Column {request.column} has no data")
+        
+    # 4. Run Semantic Search
+    try:
+        results = NLPEngine.semantic_search(df, request.column, request.query, request.top_k)
+        return {"query": request.query, "column": request.column, "results": results}
+    except ImportError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

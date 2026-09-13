@@ -45,6 +45,8 @@ CREATE TABLE public.datasets (
 
 -- 3. Dataset Columns Table
 CREATE TYPE column_data_type AS ENUM ('INTEGER', 'DECIMAL', 'TEXT', 'CATEGORY', 'BOOLEAN', 'DATE', 'DATETIME', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE');
+CREATE TYPE column_semantic_type AS ENUM ('INTEGER', 'DECIMAL', 'BOOLEAN', 'CATEGORY', 'TAGS', 'SINGLE_CHOICE', 'ORDINAL_CHOICE', 'MULTIPLE_CHOICE', 'DATE', 'DATETIME', 'SHORT_TEXT', 'LONG_TEXT', 'IDENTIFIER', 'EMAIL', 'URL', 'UNKNOWN');
+CREATE TYPE column_ml_role AS ENUM ('FEATURE', 'TARGET', 'IGNORE', 'IDENTIFIER');
 
 CREATE TABLE public.dataset_columns (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -52,8 +54,14 @@ CREATE TABLE public.dataset_columns (
     column_name TEXT NOT NULL,
     display_name TEXT NOT NULL,
     data_type column_data_type DEFAULT 'TEXT',
+    semantic_type column_semantic_type DEFAULT 'UNKNOWN',
+    ml_role column_ml_role DEFAULT 'FEATURE',
+    semantic_confidence DECIMAL(5,2) DEFAULT 0.0,
+    encoding_type TEXT DEFAULT 'NONE',
+    options JSONB DEFAULT '[]'::jsonb,
     required BOOLEAN DEFAULT false,
     validation_rules JSONB DEFAULT '{}'::jsonb,
+    metadata JSONB DEFAULT '{}'::jsonb,
     position INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -199,3 +207,8 @@ CREATE POLICY "Users can insert their own assistant logs" ON public.assistant_lo
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can view their own assistant logs" ON public.assistant_logs 
 FOR SELECT USING (auth.uid() = user_id);
+
+-- Phase 2.1 Dataset Versioning Extensions
+ALTER TABLE public.datasets ADD COLUMN active_version_id UUID REFERENCES public.dataset_versions(id) ON DELETE SET NULL;
+ALTER TABLE public.dataset_records ADD COLUMN version_id UUID REFERENCES public.dataset_versions(id) ON DELETE CASCADE;
+CREATE INDEX idx_dataset_records_version_id ON public.dataset_records(version_id);
