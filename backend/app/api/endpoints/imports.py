@@ -15,6 +15,7 @@ class ImportRequest(BaseModel):
     url: str
     kaggle_username: Optional[str] = None
     kaggle_key: Optional[str] = None
+    import_all_columns: bool = False
 
 @router.post("/{dataset_id}/import-url")
 def import_dataset_from_url(
@@ -72,6 +73,27 @@ def import_dataset_from_url(
                 
         if missing_required:
             raise HTTPException(status_code=400, detail=f"Missing required columns in imported data: {', '.join(missing_required)}")
+
+        if req.import_all_columns:
+            unmapped = [c for c in df.columns if c not in expected_cols]
+            if unmapped:
+                import time
+                timestamp = int(time.time() * 1000)
+                new_cols = []
+                for i, col in enumerate(unmapped):
+                    new_cols.append({
+                        "id": f"auto_{timestamp}_{i}",
+                        "column_name": col,
+                        "data_type": "TEXT",
+                        "semantic_type": "UNKNOWN",
+                        "ml_role": "FEATURE",
+                        "encoding_type": "NONE",
+                        "required": False
+                    })
+                column_metadata.extend(new_cols)
+                expected_cols.extend(unmapped)
+                # Update database
+                supabase.table("datasets").update({"column_metadata": column_metadata}).eq("id", dataset_id).execute()
 
         # Filter df to only schema columns that exist
         valid_cols = [c for c in expected_cols if c in df.columns]

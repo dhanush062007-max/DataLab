@@ -61,6 +61,7 @@ function DatasetWorkspaceContent() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [importAllColumns, setImportAllColumns] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // API Import State
@@ -270,9 +271,31 @@ function DatasetWorkspaceContent() {
             throw new Error(`CSV is missing required columns: ${missingRequired.map(c => c.column_name).join(", ")}`);
           }
           
+          let activeColumns = [...columns];
+          
+          if (importAllColumns) {
+            const unmappedHeaders = csvHeaders.filter(h => !expectedHeaders.includes(h));
+            if (unmappedHeaders.length > 0) {
+              const newCols = unmappedHeaders.map((h, i) => ({
+                id: `auto_${Date.now()}_${i}`,
+                column_name: h,
+                data_type: "TEXT",
+                semantic_type: "UNKNOWN",
+                ml_role: "FEATURE",
+                encoding_type: "NONE",
+                required: false
+              }));
+              
+              activeColumns = [...columns, ...newCols];
+              
+              // Update database schema
+              await supabase.from("datasets").update({ column_metadata: activeColumns }).eq("id", datasetId);
+              // Also update local state so the table renders them immediately
+              setColumns(activeColumns);
+            }
+          }
+          
           setUploadProgress(60);
-
-          setUploadProgress(50);
 
           // We will batch insert to handle massive CSVs without timing out
           const BATCH_SIZE = 5000;
@@ -283,7 +306,7 @@ function DatasetWorkspaceContent() {
             const recordsToInsert = chunk.map((row: any) => {
               // Clean row based on schema
               const cleanRow: Record<string, any> = {};
-              columns.forEach(col => {
+              activeColumns.forEach(col => {
                 let val = row[col.column_name];
                 if (val !== undefined && val !== "") {
                   if (col.data_type === "INTEGER" || col.data_type === "DECIMAL") val = Number(val);
@@ -377,7 +400,8 @@ function DatasetWorkspaceContent() {
         body: JSON.stringify({
           url: importUrl,
           kaggle_username: kaggleUser || null,
-          kaggle_key: kaggleKey || null
+          kaggle_key: kaggleKey || null,
+          import_all_columns: importAllColumns
         })
       });
 
@@ -862,7 +886,18 @@ function DatasetWorkspaceContent() {
                       <Upload className="w-8 h-8" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Upload CSV File</h3>
-                    <p className="text-muted-foreground text-sm mb-6">Your dataset is currently empty. Upload a CSV file matching your schema to populate the data.</p>
+                    <p className="text-muted-foreground text-sm mb-4">Your dataset is currently empty. Upload a CSV file matching your schema to populate the data.</p>
+                    
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <input 
+                        type="checkbox" 
+                        id="importAllCols" 
+                        checked={importAllColumns} 
+                        onChange={e => setImportAllColumns(e.target.checked)}
+                        className="w-4 h-4 rounded border-border text-primary"
+                      />
+                      <label htmlFor="importAllCols" className="text-sm font-medium">Auto-import unmapped columns</label>
+                    </div>
                     
                     <input 
                       type="file" 
@@ -890,6 +925,16 @@ function DatasetWorkspaceContent() {
                     <p className="text-muted-foreground text-sm mb-6 text-center">Fetch a CSV file directly from a public URL or Kaggle dataset.</p>
                     
                     <div className="space-y-4 text-left">
+                      <div className="flex items-center gap-2 mb-2">
+                        <input 
+                          type="checkbox" 
+                          id="importAllColsApi" 
+                          checked={importAllColumns} 
+                          onChange={e => setImportAllColumns(e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary"
+                        />
+                        <label htmlFor="importAllColsApi" className="text-sm font-medium">Auto-import unmapped columns</label>
+                      </div>
                       <div className="space-y-2">
                         <label className="text-sm font-semibold">Dataset URL or Kaggle Identifier *</label>
                         <input 
