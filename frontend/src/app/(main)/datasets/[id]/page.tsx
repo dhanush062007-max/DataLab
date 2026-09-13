@@ -275,6 +275,7 @@ function DatasetWorkspaceContent() {
           
           if (importAllColumns) {
             const unmappedHeaders = csvHeaders.filter(h => !expectedHeaders.includes(h));
+            if (unmappedHeaders.length > 0) {
               const inferType = (val: any) => {
                 if (val === null || val === undefined || val === "") return "TEXT";
                 if (typeof val === "boolean") return "BOOLEAN";
