@@ -279,6 +279,7 @@ function DatasetWorkspaceContent() {
               const newCols = unmappedHeaders.map((h, i) => ({
                 id: `auto_${Date.now()}_${i}`,
                 column_name: h,
+                display_name: h,
                 data_type: "TEXT",
                 semantic_type: "UNKNOWN",
                 ml_role: "FEATURE",
@@ -1015,7 +1016,7 @@ function DatasetWorkspaceContent() {
                     <tr>
                       <th className="px-4 py-3 bg-muted/95 border-r border-border/50 text-center w-12">#</th>
                       {columns.map(col => (
-                        <th key={col.id} className="px-4 py-3 border-r border-border/50">{col.display_name}</th>
+                        <th key={col.id} className="px-4 py-3 border-r border-border/50">{col.display_name || col.column_name}</th>
                       ))}
                       <th className="px-4 py-3"></th>
                     </tr>

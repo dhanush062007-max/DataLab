@@ -84,6 +84,7 @@ def import_dataset_from_url(
                     new_cols.append({
                         "id": f"auto_{timestamp}_{i}",
                         "column_name": col,
+                        "display_name": col,
                         "data_type": "TEXT",
                         "semantic_type": "UNKNOWN",
                         "ml_role": "FEATURE",
