@@ -111,16 +111,14 @@ def run_statistical_test(request: Request, dataset_id: str, stats_req: StatsRequ
         p_val = None
         dof = None
         
-        # Helper to drop NaNs for two columns
         def clean_data(cols):
-            # Convert to numeric if possible to handle strings that should be floats
             temp_df = df[cols].copy()
             for col in cols:
-                if col != req_g or stats_req.test_type != "CHI_SQUARE":
-                    try:
-                        temp_df[col] = pd.to_numeric(temp_df[col])
-                    except:
-                        pass
+                # Grouping variable should remain as categorical/strings
+                if col == req_g:
+                    continue
+                # Force coerce other columns to numeric (invalid strings become NaN)
+                temp_df[col] = pd.to_numeric(temp_df[col], errors='coerce')
             return temp_df.dropna()
 
         if stats_req.test_type == "T_TEST_IND":
