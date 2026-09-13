@@ -63,6 +63,12 @@ function DatasetWorkspaceContent() {
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // API Import State
+  const [importUrl, setImportUrl] = useState("");
+  const [kaggleUser, setKaggleUser] = useState("");
+  const [kaggleKey, setKaggleKey] = useState("");
+  const [importingApi, setImportingApi] = useState(false);
+
   // Manual Entry State
   const [showAddRow, setShowAddRow] = useState(false);
   const [newRowData, setNewRowData] = useState<Record<string, any>>({});
@@ -348,6 +354,45 @@ function DatasetWorkspaceContent() {
         setUploading(false);
       }
     });
+  };
+
+  // Handle API / Kaggle Import
+  const handleApiImport = async () => {
+    if (!importUrl) {
+      setUploadError("Please provide a valid URL.");
+      return;
+    }
+    setImportingApi(true);
+    setUploadError(null);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${backendUrl}/api/v1/datasets/${datasetId}/import-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          url: importUrl,
+          kaggle_username: kaggleUser || null,
+          kaggle_key: kaggleKey || null
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to import dataset from URL");
+      }
+
+      setUploadSuccess("Dataset imported successfully!");
+      fetchDatasetDetails(); // Reload data
+    } catch (e: any) {
+      setUploadError(e.message);
+    } finally {
+      setImportingApi(false);
+    }
   };
 
   // Handle Manual Row Add
@@ -810,7 +855,7 @@ function DatasetWorkspaceContent() {
             <div className="flex-1 overflow-auto relative">
               
               {/* Show Upload Dropzone if dataset is empty and type is CSV */}
-              {records.length === 0 && dataset.source_type === "CSV" && !uploading && (
+              {records.length === 0 && dataset.source_type === "CSV" && !uploading && !importingApi && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/10">
                   <div className="max-w-md w-full p-8 border-2 border-dashed border-primary/40 rounded-2xl text-center bg-background">
                     <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -834,6 +879,55 @@ function DatasetWorkspaceContent() {
                 </div>
               )}
 
+              {/* Show API Import if dataset is empty and type is API */}
+              {records.length === 0 && dataset.source_type === "API" && !uploading && !importingApi && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/10 p-4">
+                  <div className="max-w-xl w-full p-8 border border-border shadow-sm rounded-2xl bg-background">
+                    <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                      <LinkIcon className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 text-center">Import via API or URL</h3>
+                    <p className="text-muted-foreground text-sm mb-6 text-center">Fetch a CSV file directly from a public URL or Kaggle dataset.</p>
+                    
+                    <div className="space-y-4 text-left">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Dataset URL or Kaggle Identifier *</label>
+                        <input 
+                          value={importUrl}
+                          onChange={(e) => setImportUrl(e.target.value)}
+                          placeholder="e.g. zillow/zecon or https://example.com/data.csv"
+                          className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-muted-foreground">Kaggle Username (Optional)</label>
+                          <input 
+                            value={kaggleUser}
+                            onChange={(e) => setKaggleUser(e.target.value)}
+                            placeholder="e.g. johndoe"
+                            className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-muted-foreground">Kaggle API Key (Optional)</label>
+                          <input 
+                            type="password"
+                            value={kaggleKey}
+                            onChange={(e) => setKaggleKey(e.target.value)}
+                            placeholder="e.g. 1a2b3c..."
+                            className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={handleApiImport} className="w-full mt-2" disabled={!importUrl}>
+                        Fetch & Import Data
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Show Loading State */}
               {uploading && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
@@ -843,6 +937,17 @@ function DatasetWorkspaceContent() {
                       <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                     </div>
                     <div className="text-sm text-muted-foreground">{uploadProgress}% Complete</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Show Loading State for API */}
+              {importingApi && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+                  <div className="w-64 space-y-4 text-center">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
+                    <div className="font-bold">Downloading Dataset...</div>
+                    <div className="text-sm text-muted-foreground">This may take a minute for large files.</div>
                   </div>
                 </div>
               )}

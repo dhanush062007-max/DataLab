@@ -275,7 +275,7 @@ export default function NewDatasetPage() {
 
             <div className="space-y-3">
               <label className="text-sm font-semibold">Source Type</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div 
                   onClick={() => setSourceType("MANUAL")}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${sourceType === "MANUAL" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
@@ -299,6 +299,14 @@ export default function NewDatasetPage() {
                   <Columns className={`w-6 h-6 mb-2 ${sourceType === "FORM" ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="font-semibold text-sm">Data Collection Form</div>
                   <div className="text-xs text-muted-foreground mt-1">Public collection link</div>
+                </div>
+                <div 
+                  onClick={() => setSourceType("API")}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${sourceType === "API" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                >
+                  <LinkIcon className={`w-6 h-6 mb-2 ${sourceType === "API" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="font-semibold text-sm">API / Kaggle</div>
+                  <div className="text-xs text-muted-foreground mt-1">Fetch from Public URL or Kaggle</div>
                 </div>
               </div>
             </div>
