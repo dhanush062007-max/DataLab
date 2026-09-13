@@ -288,7 +288,7 @@ function DatasetWorkspaceContent() {
               };
               
               const newCols = unmappedHeaders.map((h, i) => {
-                const sampleVal = parsedData[0][h];
+                const sampleVal = (parsedData[0] as Record<string, any>)[h];
                 const inferredType = inferType(sampleVal);
                 return {
                   id: `auto_${Date.now()}_${i}`,
@@ -306,7 +306,7 @@ function DatasetWorkspaceContent() {
               
               // Update database schema
               const dbColumnsToInsert = unmappedHeaders.map((h, i) => {
-                const sampleVal = parsedData[0][h];
+                const sampleVal = (parsedData[0] as Record<string, any>)[h];
                 const inferredType = inferType(sampleVal);
                 return {
                   dataset_id: datasetId,
