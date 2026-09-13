@@ -99,18 +99,19 @@ export function VersionHistory({ datasetId, currentActiveVersion, onVersionResto
               <div className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 ${currentActiveVersion === null ? 'bg-primary border-primary' : 'bg-background border-muted-foreground'}`}></div>
               <div className={`p-4 border rounded-xl shadow-sm transition-all ${currentActiveVersion === null ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">V0</span>
-                      <h3 className="font-bold text-lg">Original Dataset</h3>
-                      {currentActiveVersion === null && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-400">ACTIVE</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">V0</span>
+                      <h3 className="font-bold text-lg truncate">Original Dataset</h3>
+                      {currentActiveVersion === null && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-400 shrink-0">ACTIVE</span>}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">The initial raw data uploaded or imported.</p>
+                    <p className="text-sm text-muted-foreground mb-3 break-words">The initial raw data uploaded or imported.</p>
                   </div>
                   {currentActiveVersion !== null && (
                     <Button 
                       variant="outline" 
                       size="sm" 
+                      className="w-full sm:w-auto shrink-0"
                       onClick={() => handleRestoreVersion(null)}
                       disabled={restoring !== null}
                     >
@@ -131,14 +132,14 @@ export function VersionHistory({ datasetId, currentActiveVersion, onVersionResto
                   
                   <div className={`p-4 border rounded-xl shadow-sm transition-all ${isActive ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card hover:bg-muted/30'}`}>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">V{idx + 1}</span>
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            <GitCommit className="w-4 h-4 text-muted-foreground" />
-                            {v.operation}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">V{idx + 1}</span>
+                          <h3 className="font-bold text-lg flex items-center gap-2 min-w-0">
+                            <GitCommit className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="truncate">{v.operation}</span>
                           </h3>
-                          {isActive && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-400">ACTIVE</span>}
+                          {isActive && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-400 shrink-0">ACTIVE</span>}
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                           <div className="flex items-center gap-1">
@@ -149,7 +150,7 @@ export function VersionHistory({ datasetId, currentActiveVersion, onVersionResto
                         </div>
                         
                         {v.parameters && Object.keys(v.parameters).length > 0 && (
-                          <div className="bg-background/50 rounded-md p-2 text-xs font-mono text-muted-foreground border border-border">
+                          <div className="bg-background/50 rounded-md p-2 text-xs font-mono text-muted-foreground border border-border overflow-x-auto break-words max-w-full">
                             {JSON.stringify(v.parameters)}
                           </div>
                         )}
@@ -159,6 +160,7 @@ export function VersionHistory({ datasetId, currentActiveVersion, onVersionResto
                         <Button 
                           variant="outline" 
                           size="sm" 
+                          className="w-full sm:w-auto shrink-0"
                           onClick={() => handleRestoreVersion(v.id)}
                           disabled={restoring !== null}
                         >
