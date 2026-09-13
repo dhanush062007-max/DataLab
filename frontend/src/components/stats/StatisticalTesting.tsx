@@ -103,8 +103,8 @@ export function StatisticalTesting({ datasetId, columns }: StatisticalTestingPro
     }
   };
 
-  const numericColumns = columns.filter(c => c.data_type === "INTEGER" || c.data_type === "DECIMAL");
-  const catColumns = columns.filter(c => c.data_type === "VARCHAR" || c.data_type === "BOOLEAN");
+  const numericColumns = columns.filter(c => ['INTEGER', 'DECIMAL'].includes(c.semantic_type) || ['INTEGER', 'DECIMAL'].includes(c.data_type));
+  const catColumns = columns.filter(c => ['CATEGORY', 'BOOLEAN', 'ORDINAL_CHOICE', 'SINGLE_CHOICE', 'SHORT_TEXT'].includes(c.semantic_type) || ['VARCHAR', 'BOOLEAN'].includes(c.data_type));
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
