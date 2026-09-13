@@ -316,7 +316,8 @@ function ExploreDatasetContent() {
                         <thead className="text-xs text-muted-foreground uppercase bg-muted/50 rounded-t-lg">
                           <tr>
                             <th className="px-5 py-3 font-semibold rounded-tl-lg">Column Name</th>
-                            <th className="px-5 py-3 font-semibold rounded-tr-lg">Data Type</th>
+                            <th className="px-5 py-3 font-semibold">Type</th>
+                            <th className="px-5 py-3 font-semibold rounded-tr-lg">Required</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
@@ -324,7 +325,12 @@ function ExploreDatasetContent() {
                             <tr key={col.id} className="hover:bg-muted/20 transition-colors">
                               <td className="px-5 py-4 font-medium text-foreground">{col.display_name}</td>
                               <td className="px-5 py-4 text-muted-foreground">
-                                <span className="px-2 py-1 bg-muted rounded text-xs font-mono">{col.data_type}</span>
+                                <span className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                                  {col.semantic_type && col.semantic_type !== 'UNKNOWN' ? col.semantic_type.replace(/_/g, ' ') : col.data_type}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4">
+                                {col.required ? <span className="text-red-500 font-bold">*</span> : <span className="text-muted-foreground">-</span>}
                               </td>
                             </tr>
                           ))}
