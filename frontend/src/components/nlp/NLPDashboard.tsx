@@ -68,7 +68,7 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
   return (
     <div className="space-y-6">
       
-      <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-indigo-500" />
@@ -77,12 +77,12 @@ export function NLPDashboard({ datasetId, columns }: NLPDashboardProps) {
           <p className="text-sm text-muted-foreground mt-1">Extract topics and sentiments from unstructured text.</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
           <label className="text-sm font-semibold whitespace-nowrap">Target Column:</label>
           <select 
             value={selectedColumn}
             onChange={(e) => setSelectedColumn(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-input bg-background text-sm min-w-[200px]"
+            className="h-10 px-3 rounded-lg border border-input bg-background text-sm w-full sm:w-auto min-w-[200px]"
           >
             {textColumns.map(c => (
               <option key={c.id} value={c.column_name}>{c.display_name} ({c.semantic_type === 'UNKNOWN' ? c.data_type : c.semantic_type})</option>
