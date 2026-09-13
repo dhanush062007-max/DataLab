@@ -18,6 +18,7 @@ const ReportGenerator = dynamic(() => import("@/components/reports/ReportGenerat
 const ExperimentLedger = dynamic(() => import("@/components/ml/ExperimentLedger").then(m => m.ExperimentLedger), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const NLPDashboard = dynamic(() => import("@/components/nlp/NLPDashboard").then(m => m.NLPDashboard), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 const DataAssistant = dynamic(() => import("@/components/ui/DataAssistant").then(m => m.DataAssistant), { ssr: false });
+const VersionHistory = dynamic(() => import("@/components/versions/VersionHistory").then(m => m.VersionHistory), { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading component...</div> });
 import { BrainCircuit, Calculator, BarChart3 as BarChartIcon, FileText, FlaskConical, MessageSquare } from "lucide-react";
 
 function DatasetWorkspaceContent() {
@@ -575,6 +576,12 @@ function DatasetWorkspaceContent() {
         >
           <FileText className="w-4 h-4" /> Report
         </button>
+        <button 
+          onClick={() => setActiveTab("VERSIONS")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === "VERSIONS" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <History className="w-4 h-4" /> Versions
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -1094,6 +1101,17 @@ function DatasetWorkspaceContent() {
         {activeTab === "REPORT" && (
           <div className="overflow-y-auto pr-2 pb-4 h-full">
             <ReportGenerator datasetId={datasetId} datasetName={dataset?.name || "Dataset Report"} />
+          </div>
+        )}
+
+        {/* TAB: VERSIONS */}
+        {activeTab === "VERSIONS" && (
+          <div className="overflow-y-auto pr-2 pb-4 h-full">
+            <VersionHistory 
+              datasetId={datasetId} 
+              currentActiveVersion={dataset?.active_version_id || null} 
+              onVersionRestored={() => window.location.reload()} 
+            />
           </div>
         )}
 
