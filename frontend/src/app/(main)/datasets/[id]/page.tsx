@@ -387,7 +387,7 @@ function DatasetWorkspaceContent() {
       }
 
       setUploadSuccess("Dataset imported successfully!");
-      fetchDatasetDetails(); // Reload data
+      window.location.reload();
     } catch (e: any) {
       setUploadError(e.message);
     } finally {
