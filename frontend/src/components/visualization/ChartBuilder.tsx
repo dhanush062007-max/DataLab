@@ -85,6 +85,8 @@ export function ChartBuilder({ datasetId, columns }: ChartBuilderProps) {
       setRunning(false);
       setRunningSlow(false);
     }
+  };
+
   const [recommendations, setRecommendations] = useState<any[]>([]);
 
   // Fetch recommendations on load
