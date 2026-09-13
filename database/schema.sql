@@ -135,6 +135,7 @@ CREATE TABLE public.ml_experiments (
     algorithm TEXT NOT NULL,
     parameters JSONB DEFAULT '{}'::jsonb,
     metrics JSONB DEFAULT '{}'::jsonb,
+    feature_importances JSONB DEFAULT '{}'::jsonb,
     status ml_experiment_status DEFAULT 'QUEUED',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE

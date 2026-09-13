@@ -73,6 +73,27 @@ def train_model(request: Request, dataset_id: str, train_req: TrainRequest, supa
             column_metadata=column_metadata
         )
         
+        # 4. Save to Database
+        prob_type = "CLASSIFICATION" if "CLASSIFICATION" in experiment_data["algorithm"] else "REGRESSION"
+        
+        insert_payload = {
+            "dataset_id": dataset_id,
+            "version_id": active_version_id,
+            "target": experiment_data["target_column"],
+            "features": experiment_data["feature_columns"],
+            "problem_type": prob_type,
+            "algorithm": experiment_data["model_name"],
+            "parameters": train_req.parameters,
+            "metrics": experiment_data["metrics"],
+            "feature_importances": experiment_data.get("feature_importances", {}),
+            "status": "COMPLETED"
+        }
+        
+        insert_res = supabase.table("ml_experiments").insert(insert_payload).execute()
+        
+        if insert_res.data:
+            experiment_data["id"] = insert_res.data[0].get("id")
+            
         return experiment_data
 
     except ValueError as ve:

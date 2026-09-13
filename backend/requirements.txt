@@ -9,3 +9,4 @@ scipy
 slowapi
 google-genai
 sentence-transformers
+shap

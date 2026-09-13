@@ -209,3 +209,21 @@ def generate_visualization(dataset_id: str, request: VisualizationRequest, supab
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Visualization Error: {str(e)}")
+
+from app.services.visualization_engine import ChartRecommender
+
+@router.get("/{dataset_id}/visualize/recommendations")
+def get_chart_recommendations(dataset_id: str, supabase: Client = Depends(get_supabase_client)):
+    try:
+        # Fetch column metadata
+        c_res = supabase.table("dataset_columns").select("*").eq("dataset_id", dataset_id).execute()
+        if not c_res.data:
+            return []
+        
+        column_metadata = c_res.data
+        recommendations = ChartRecommender.recommend_charts(column_metadata)
+        
+        return recommendations
+    except Exception as e:
+        print(f"Error generating chart recommendations: {e}")
+        return []
